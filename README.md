@@ -3,7 +3,7 @@ Doodle App does not store any media files on our servers and is not directly lin
 ## Download  ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/punisher-303/Doodle-Movie-App/total?link=https%3A%2F%2Fgithub.com%2Fpunisher-303%2FDoodle-Movie-App%2Freleases)
 Note: Download Universal version if armeabi-v7a and arm64-v8a are not working for your device.
 
-[![Download Apk](https://custom-icon-badges.demolab.com/badge/-Download_Apk-blue?style=for-the-badge&logo=download&logoColor=white "Download Apk")](https://github.com/punisher-303/vDoodle-Movie-App/releases)
+[![Download Apk](https://custom-icon-badges.demolab.com/badge/-Download_Apk-blue?style=for-the-badge&logo=download&logoColor=white "Download Apk")](https://doodlemovies.vercel.app)
 
 ### Project Description
 Doodle movies is an app for streaming movies from multiple providers you can easely access all kinda movies and animes in one app
