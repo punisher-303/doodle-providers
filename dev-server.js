@@ -146,7 +146,7 @@ class DevServer {
   start() {
     this.app.listen(this.port, "0.0.0.0", () => {
       console.log(`
-🚀 Vega Providers Dev Server Started!
+🚀 Doodle Providers Dev Server Started!
 
 📡 Server URL: http://localhost:${this.port}
 📱 Mobile URL: http://<your-ip>:${this.port}
@@ -161,7 +161,7 @@ class DevServer {
 
 💡 Usage:
   1. Run 'node build.js' to build providers
-  2. Update vega app to use: http://localhost:${this.port}
+  2. Update Doodle app to use: http://localhost:${this.port}
   3. Test your providers!
 
 🔄 Auto-rebuild: POST to /build to rebuild after changes

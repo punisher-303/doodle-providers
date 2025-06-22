@@ -171,7 +171,7 @@ class AutoDev {
 
   async start() {
     console.log(`
-${colors.bright}🚀 Vega Providers Auto-Development Environment${colors.reset}
+${colors.bright}🚀 Doodle Providers Auto-Development Environment${colors.reset}
 
 ${colors.cyan}Features:${colors.reset}
 • 👀 Auto-watch TypeScript files in /providers

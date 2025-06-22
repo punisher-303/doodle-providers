@@ -1,1 +1,1 @@
-# Vega App Provider Extensions
+# Doodle App Provider Extensions
