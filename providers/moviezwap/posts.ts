@@ -3,7 +3,6 @@ import { Post, ProviderContext } from "../types";
 export const getPosts = async function ({
   filter,
   page,
-  // providerValue,
   signal,
   providerContext,
 }: {
@@ -13,16 +12,15 @@ export const getPosts = async function ({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl, axios, cheerio } = providerContext;
-  const baseUrl = await getBaseUrl("showbox");
-  const url = `${baseUrl + filter}?page=${page}/`;
-  return posts({ url, signal, baseUrl, axios, cheerio });
+  const { getBaseUrl, cheerio } = providerContext;
+  const baseUrl = await getBaseUrl("moviezwap");
+  const url = `${baseUrl}${filter}`;
+  return posts({ url, signal, cheerio });
 };
 
 export const getSearchPosts = async function ({
   searchQuery,
   page,
-  // providerValue,
   signal,
   providerContext,
 }: {
@@ -32,35 +30,31 @@ export const getSearchPosts = async function ({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl, axios, cheerio } = providerContext;
-  const baseUrl = await getBaseUrl("showbox");
-  const url = `${baseUrl}/search?keyword=${searchQuery}&page=${page}`;
-  return posts({ url, signal, baseUrl, axios, cheerio });
+  const { getBaseUrl, cheerio } = providerContext;
+  const baseUrl = await getBaseUrl("moviezwap");
+  const url = `${baseUrl}/search.php?q=${encodeURIComponent(searchQuery)}`;
+  return posts({ url, signal, cheerio });
 };
 
 async function posts({
   url,
   signal,
-  // baseUrl,
-  axios,
   cheerio,
 }: {
   url: string;
   signal: AbortSignal;
-  baseUrl: string;
-  axios: ProviderContext["axios"];
   cheerio: ProviderContext["cheerio"];
 }): Promise<Post[]> {
   try {
-    const res = await axios.get(url, { signal });
-    const data = res.data;
+    const res = await fetch(url, { signal });
+    const data = await res.text();
     const $ = cheerio.load(data);
     const catalog: Post[] = [];
-    $(".movie-item,.flw-item").map((i, element) => {
-      const title = $(element).find(".film-name").text().trim();
-      const link = $(element).find("a").attr("href");
-      const image = $(element).find("img").attr("src");
-      if (title && link && image) {
+    $('a[href^="/movie/"]').each((i, el) => {
+      const title = $(el).text().trim();
+      const link = $(el).attr("href");
+      const image = "";
+      if (title && link) {
         catalog.push({
           title: title,
           link: link,
@@ -70,6 +64,7 @@ async function posts({
     });
     return catalog;
   } catch (err) {
+    console.error("moviezwapGetPosts error ", err);
     return [];
   }
 }

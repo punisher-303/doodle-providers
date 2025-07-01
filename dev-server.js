@@ -3,6 +3,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
+const os = require("os");
 
 /**
  * Local development server for testing providers
@@ -144,24 +145,28 @@ class DevServer {
   }
 
   start() {
+    // Get local IP address
+    const interfaces = os.networkInterfaces();
+    let localIp = "localhost";
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name]) {
+        if (iface.family === "IPv4" && !iface.internal) {
+          localIp = iface.address;
+          break;
+        }
+      }
+      if (localIp !== "localhost") break;
+    }
     this.app.listen(this.port, "0.0.0.0", () => {
       console.log(`
-🚀 Doodle Providers Dev Server Started!
+🚀 Vega Providers Dev Server Started!
 
 📡 Server URL: http://localhost:${this.port}
-📱 Mobile URL: http://<your-ip>:${this.port}
-
-📋 Available endpoints:
-  • GET /manifest.json - Provider manifest
-  • GET /dist/:provider/:file - Provider modules
-  • POST /build - Trigger rebuild
-  • GET /status - Server status
-  • GET /providers - List providers
-  • GET /health - Health check
+📱 Mobile Test URL: http://${localIp}:${this.port}
 
 💡 Usage:
-  1. Run 'node build.js' to build providers
-  2. Update Doodle app to use: http://localhost:${this.port}
+  1. Run 'npm run auto' to to start the dev server ☑️
+  2. Update vega app to use: http://${localIp}:${this.port}
   3. Test your providers!
 
 🔄 Auto-rebuild: POST to /build to rebuild after changes

@@ -171,13 +171,8 @@ class AutoDev {
 
   async start() {
     console.log(`
-${colors.bright}🚀 Doodle Providers Auto-Development Environment${colors.reset}
+${colors.bright}🚀 Vega Providers Auto-Development Environment${colors.reset}
 
-${colors.cyan}Features:${colors.reset}
-• 👀 Auto-watch TypeScript files in /providers
-• 🔨 Auto-rebuild on file changes
-• 🌐 Development server with hot-reload
-• 📊 Real-time build feedback
 
 ${colors.yellow}Press Ctrl+C to stop${colors.reset}
 `);
