@@ -15,7 +15,7 @@ const getStream = (_a) => __awaiter(void 0, [_a], void 0, function* ({ link: id,
     try {
         let providerValue = "netflixMirror";
         const baseUrl = yield getBaseUrl("nfMirror");
-        const url = `https://netmirror.8man.me/api/net-proxy?url=${baseUrl}${providerValue === "netflixMirror"
+        const url = `https://netmirror.zendax.tech/api/net-proxy?url=${baseUrl}${providerValue === "netflixMirror"
             ? "/mobile/playlist.php?id="
             : "/pv/playlist.php?id="}${id}&t=${Math.round(new Date().getTime() / 1000)}`;
         console.log("nfGetStream, url:", url);
@@ -29,7 +29,7 @@ const getStream = (_a) => __awaiter(void 0, [_a], void 0, function* ({ link: id,
             var _a;
             streamLinks.push({
                 server: source.label,
-                link: (_a = (baseUrl + source.file)) === null || _a === void 0 ? void 0 : _a.replace(":su", ":ni"),
+                link: (_a = source.file) === null || _a === void 0 ? void 0 : _a.replace(":su", ":ni"),
                 type: "m3u8",
                 headers: {
                     Referer: baseUrl,
