@@ -40,6 +40,22 @@
     "disabled": false
   },
   {
+    "display_name": "Netflix",
+    "value": "netflixMirror",
+    "version": "1.2",
+    "icon": "",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "PrimeVideo",
+    "value": "primeMirror",
+    "version": "1.1",
+    "icon": "",
+    "type": "global",
+    "disabled": false
+  },
+  {
     "display_name": "4khdHub",
     "value": "4khdhub",
     "version": "1.1",
@@ -115,22 +131,6 @@
     "display_name": "Ringz",
     "value": "ringz",
     "version": "1.0",
-    "icon": "",
-    "type": "global",
-    "disabled": false
-  },
-  {
-    "display_name": "NetflixMirror",
-    "value": "netflixMirror",
-    "version": "1.2",
-    "icon": "",
-    "type": "global",
-    "disabled": false
-  },
-  {
-    "display_name": "PrimeMirror",
-    "value": "primeMirror",
-    "version": "1.1",
     "icon": "",
     "type": "global",
     "disabled": false
