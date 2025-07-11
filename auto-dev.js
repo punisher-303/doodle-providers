@@ -171,7 +171,7 @@ class AutoDev {
 
   async start() {
     console.log(`
-${colors.bright}🚀 Vega Providers Auto-Development Environment${colors.reset}
+${colors.bright}🚀 Doodle Providers Auto-Development Environment${colors.reset}
 
 
 ${colors.yellow}Press Ctrl+C to stop${colors.reset}

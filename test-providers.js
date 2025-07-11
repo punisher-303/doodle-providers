@@ -234,7 +234,7 @@ Commands:
 
 Examples:
   node test-providers.js              # Test all providers
-  node test-providers.js test vega    # Test specific provider
+  node test-providers.js test doodle    # Test specific provider
   node test-providers.js status       # Show status
   node test-providers.js rebuild      # Rebuild and test
       `);
