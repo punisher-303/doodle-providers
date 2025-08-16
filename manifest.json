@@ -13,7 +13,7 @@
     "version": "1.6",
     "icon": "",
     "type": "global",
-    "disabled": true
+    "disabled": false
   },
   {
     "display_name": "DoodleMovies",
@@ -168,12 +168,20 @@
     "disabled": false
   },
   {
+    "display_name": "A.111477",
+    "value": "a111477",
+    "version": "1.2",
+    "icon": "",
+    "type": "english",
+    "disabled": false
+  },
+  {
     "display_name": "VadaPav",
     "value": "vadapav",
     "version": "1.0",
     "icon": "",
     "type": "global",
-    "disabled": false
+    "disabled": true
   },
   {
     "display_name": "MoviesApi",
@@ -197,7 +205,7 @@
     "version": "1.0",
     "icon": "",
     "type": "english",
-    "disabled": true
+    "disabled": false
   },
   {
     "display_name": "FlixHQ",
@@ -253,6 +261,6 @@
     "version": "1.0",
     "icon": "",
     "type": "italy",
-    "disabled": true
+    "disabled": false
   }
 ]
