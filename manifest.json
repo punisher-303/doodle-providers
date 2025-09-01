@@ -1,4 +1,13 @@
 [
+  
+  {
+    "display_name": "DoodleMovies",
+    "value": "vega",
+    "version": "1.8",
+    "icon": "",
+    "type": "global",
+    "disabled": false
+  },
   {
     "display_name": "Netflix",
     "value": "netflixMirror",
@@ -16,11 +25,11 @@
     "disabled": false
   },
   {
-    "display_name": "DoodleMovies",
-    "value": "vega",
-    "version": "1.8",
+    "display_name": "RogMovies",
+    "value": "luxMovies",
+    "version": "1.6",
     "icon": "",
-    "type": "global",
+    "type": "india",
     "disabled": false
   },
   {
@@ -56,14 +65,6 @@
     "disabled": false
   },
   {
-    "display_name": "RogMovies",
-    "value": "luxMovies",
-    "version": "1.6",
-    "icon": "",
-    "type": "india",
-    "disabled": false
-  },
-  {
     "display_name": "MultiStream",
     "value": "autoEmbed",
     "version": "1.2",
@@ -85,6 +86,22 @@
     "version": "1.2",
     "icon": "",
     "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "KissKh",
+    "value": "kissKh",
+    "version": "1.2",
+    "icon": "",
+    "type": "english",
+    "disabled": false
+  },
+  {
+    "display_name": "A.111477",
+    "value": "a111477",
+    "version": "1.2",
+    "icon": "",
+    "type": "english",
     "disabled": false
   },
   {
@@ -168,14 +185,6 @@
     "disabled": false
   },
   {
-    "display_name": "A.111477",
-    "value": "a111477",
-    "version": "1.2",
-    "icon": "",
-    "type": "english",
-    "disabled": false
-  },
-  {
     "display_name": "VadaPav",
     "value": "vadapav",
     "version": "1.0",
@@ -235,14 +244,6 @@
     "display_name": "TokyoInsider",
     "value": "tokyoInsider",
     "version": "1.0",
-    "icon": "",
-    "type": "english",
-    "disabled": false
-  },
-  {
-    "display_name": "KissKh",
-    "value": "kissKh",
-    "version": "1.2",
     "icon": "",
     "type": "english",
     "disabled": false
