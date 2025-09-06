@@ -33,6 +33,14 @@
     "disabled": false
   },
   {
+    "display_name": "MultiStream",
+    "value": "autoEmbed",
+    "version": "1.4",
+    "icon": "",
+    "type": "global",
+    "disabled": false
+  },
+  {
     "display_name": "Dooflix",
     "value": "dooflix",
     "version": "1.4",
@@ -65,8 +73,8 @@
     "disabled": false
   },
   {
-    "display_name": "MultiStream",
-    "value": "autoEmbed",
+    "display_name": "World4uFree",
+    "value": "world4u",
     "version": "1.2",
     "icon": "",
     "type": "global",
@@ -142,14 +150,6 @@
     "version": "1.1",
     "icon": "",
     "type": "english",
-    "disabled": false
-  },
-  {
-    "display_name": "World4uFree",
-    "value": "world4u",
-    "version": "1.0",
-    "icon": "",
-    "type": "global",
     "disabled": false
   },
   {
