@@ -1,20 +1,17 @@
 export const catalog = [
   {
     title: "Trending",
-    filter: "/genre/latest-trending-releases/",
-  },
-  {
-    title: "Netflix",
-    filter: "/network/netflix/",
-  },
-  {
-    title: "Amazon Prime",
-    filter: "/network/prime-video/",
+    filter: "",
   },
   {
     title: "Animation",
-    filter: "/genre/anime/",
+    filter: "animation/",
+  },
+  {
+    title:  "Apple-TV",
+    filter: "web-series/apple-tv/",
   },
 ];
 
 export const genres = [];
+

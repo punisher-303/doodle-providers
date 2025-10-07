@@ -1,6 +1,6 @@
 import { EpisodeLink, ProviderContext } from "../types";
 
-export const getEpisodes = async function ({
+export async function getEpisodeLinks({
   url,
   providerContext,
 }: {
@@ -8,68 +8,41 @@ export const getEpisodes = async function ({
   providerContext: ProviderContext;
 }): Promise<EpisodeLink[]> {
   try {
-    if (!url.includes("luxelinks") || url.includes("cinemalux")) {
-      const res = await providerContext.axios.get(url, {
-        headers: providerContext.commonHeaders,
-      });
-      const data = res.data;
-      const encodedLink = data.match(/"link":"([^"]+)"/)?.[1];
-      if (encodedLink) {
-        url = encodedLink ? atob(encodedLink) : url;
-      } else {
-        const redirectUrlRes = await fetch(
-          "https://cm-decrypt.8man.workers.dev/cinemaluxe",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ url }),
-          }
-        );
-        const redirectUrl = await redirectUrlRes.json();
-        url = redirectUrl?.redirectUrl || url;
-      }
-    }
-    const episodeLinks: EpisodeLink[] = [];
+    const res = await providerContext.axios.get(url);
+    const $ = providerContext.cheerio.load(res.data || "");
+    const episodes: EpisodeLink[] = [];
 
-    if (url.includes("luxedrive") || url.includes("drive.linkstore")) {
-      episodeLinks.push({
-        title: "Movie",
-        link: url,
-      });
-      return episodeLinks;
-    }
-    const res = await providerContext.axios.get(url, {
-      headers: providerContext.commonHeaders,
+    let episodeCounter = 1; // Episode numbering start
+
+    // ✅ Sirf V-Cloud episodes
+    $("a").each((_, aEl) => {
+      const href = ($(aEl).attr("href") || "").trim();
+
+      // V-Cloud link check
+      if (href.includes("vcloud.lol")) {
+        const btnText = `Episode ${episodeCounter}`; // Episode number assign
+        episodes.push({
+          title: btnText,
+          link: href,
+        });
+        episodeCounter++; // Counter increment
+      }
     });
-    const html = res.data;
-    let $ = providerContext.cheerio.load(html);
 
-    $("a.maxbutton-4,a.maxbutton,.maxbutton-hubcloud,.ep-simple-button").map(
-      (i, element) => {
-        const title = $(element).text()?.trim();
-        const link = $(element).attr("href");
-        if (
-          title &&
-          link &&
-          !title.includes("Batch") &&
-          !title.toLowerCase().includes("zip")
-        ) {
-          episodeLinks.push({
-            title: title
-              .replace(/\(\d{4}\)/, "")
-              .replace("Download", "Movie")
-              .replace("⚡", "")
-              .trim(),
-            link,
-          });
-        }
-      }
-    );
-    return episodeLinks;
+    return episodes;
   } catch (err) {
-    console.error("cl episode links", err);
+    console.error("getEpisodeLinks error:", err);
     return [];
   }
-};
+}
+
+// --- System wrapper
+export async function getEpisodes({
+  url,
+  providerContext,
+}: {
+  url: string;
+  providerContext: ProviderContext;
+}): Promise<EpisodeLink[]> {
+  return await getEpisodeLinks({ url, providerContext });
+}

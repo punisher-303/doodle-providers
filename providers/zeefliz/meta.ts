@@ -138,7 +138,10 @@ export const getMeta = async function ({
     result.linkList = links;
     return result;
   } catch (err) {
-    console.error("getMeta error:", err instanceof Error ? err.message : err);
+    console.error(
+      "getMeta error:",
+      err instanceof Error ? err.message : err
+    );
     return emptyResult;
   }
 };
