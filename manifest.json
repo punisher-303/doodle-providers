@@ -288,14 +288,6 @@
     "disabled": false
   },
   {
-    "display_name": "HdHub4u",
-    "value": "hdhub4u",
-    "version": "1.0",
-    "icon": "",
-    "type": "global",
-    "disabled": false
-  },
-  {
     "display_name": "VadaPav",
     "value": "vadapav",
     "version": "1.0",
@@ -320,36 +312,12 @@
     "disabled": false
   },
   {
-    "display_name": "RidoMovies",
-    "value": "ridoMovies",
-    "version": "1.0",
-    "icon": "",
-    "type": "english",
-    "disabled": false
-  },
-  {
-    "display_name": "FlixHQ",
-    "value": "flixhq",
-    "version": "1.0",
-    "icon": "",
-    "type": "english",
-    "disabled": false
-  },
-  {
     "display_name": "Primewire",
     "value": "primewire",
     "version": "1.0",
     "icon": "",
     "type": "english",
     "disabled": false
-  },
-  {
-    "display_name": "HiAnime",
-    "value": "hiAnime",
-    "version": "1.0",
-    "icon": "",
-    "type": "english",
-    "disabled": true
   },
   {
     "display_name": "TokyoInsider",
