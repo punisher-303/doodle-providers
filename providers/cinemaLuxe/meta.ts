@@ -48,7 +48,7 @@ export const getMeta = function ({
       const linkList: Link[] = [];
 
       if (type === "series") {
-        // ✅ Series ke liye sirf V-Cloud links
+        // 1. --- PRIORITIZE V-CLOUD (PER-EPISODE) LINKS ---
         infoContainer.find("h3").each((_, el) => {
           const el$ = $(el);
           const seasonTitle = el$.text().trim();
@@ -59,6 +59,7 @@ export const getMeta = function ({
           el$.nextUntil("h3").find("a").each((_, aEl) => {
             const href = $(aEl).attr("href")?.trim() || "";
             const btnText = $(aEl).text().trim() || "";
+            // Check for vcloud.lol (old) or button text 'V-Cloud'
             if (href.includes("vcloud.lol") || btnText.includes("V-Cloud")) {
               vcloudLinks.push(href);
             }
@@ -76,8 +77,40 @@ export const getMeta = function ({
             });
           }
         });
+
+        // 2. --- ADD BATCH/TOP-LEVEL DOWNLOAD LINKS (e.g., NexDrive) ---
+        // Iterate through all <h3> tags again to find batch download links.
+        $("h3").each((_, h3El) => {
+          const el$ = $(h3El);
+          const batchTitle = el$.text().trim();
+          
+          // Check if the title looks like a season/batch heading
+          if (/Season \d+|\[.+\]/i.test(batchTitle)) {
+              
+              // Look for an immediate following paragraph containing an <a> tag with a download button class or text
+              const $linkContainer = el$.next("p");
+              // Look for links with the 'dwd-button' class, or that contain 'download' in text/href
+              const batchLinkEl = $linkContainer.find('a:has(button.dwd-button), a:contains("download"), a[href*="download"]');
+              
+              if (batchLinkEl.length > 0) {
+                  const href = batchLinkEl.attr("href")?.trim() || "";
+                  
+                  if (href) {
+                      linkList.push({
+                          title: batchTitle,
+                          episodesLink: "", 
+                          directLinks: [{
+                              title: batchTitle,
+                              link: href,
+                              type: "series", 
+                          }],
+                      });
+                  }
+              }
+          }
+        });
       } else {
-        // ✅ Movie ke liye direct links fetch karenge
+        // ✅ Existing Movie logic
         infoContainer.find("h5").each((_, h5El) => {
           const el$ = $(h5El);
           const movieTitle = el$.text().trim();
