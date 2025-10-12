@@ -64,6 +64,14 @@
     "disabled": false
   },
   {
+    "display_name": "World4uFree",
+    "value": "world4u",
+    "version": "1.4",
+    "icon": "",
+    "type": "global",
+    "disabled": false
+  },
+  {
     "display_name": "FlixHQ",
     "value": "flixhq",
     "version": "1.3",
@@ -96,11 +104,11 @@
     "disabled": false
   },
   {
-    "display_name": "World4uFree",
-    "value": "world4u",
-    "version": "1.4",
+    "display_name": "GuardaHD",
+    "value": "guardahd",
+    "version": "1.3",
     "icon": "",
-    "type": "global",
+    "type": "italy",
     "disabled": false
   },
   {
@@ -333,14 +341,6 @@
     "version": "1.0",
     "icon": "",
     "type": "india",
-    "disabled": false
-  },
-  {
-    "display_name": "GuardaHD",
-    "value": "guardahd",
-    "version": "1.0",
-    "icon": "",
-    "type": "italy",
     "disabled": false
   },
   {
