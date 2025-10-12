@@ -2,7 +2,7 @@
   {
     "display_name": "DoodleMovies",
     "value": "vega",
-    "version": "1.9",
+    "version": "2.0",
     "icon": "",
     "type": "global",
     "disabled": false
@@ -10,7 +10,7 @@
   {
     "display_name": "CinemaLuxe",
     "value": "cinemaLuxe",
-    "version": "1.7",
+    "version": "1.8",
     "icon": "",
     "type": "global",
     "disabled": false
@@ -18,7 +18,7 @@
   {
     "display_name": "Netflix",
     "value": "netflixMirror",
-    "version": "1.7",
+    "version": "1.8",
     "icon": "",
     "type": "global",
     "disabled": true
@@ -26,7 +26,7 @@
   {
     "display_name": "PrimeVideo",
     "value": "primeMirror",
-    "version": "1.7",
+    "version": "1.8",
     "icon": "",
     "type": "global",
     "disabled": false
@@ -34,7 +34,15 @@
   {
     "display_name": "Dooflix",
     "value": "dooflix",
-    "version": "1.6",
+    "version": "1.7",
+    "icon": "",
+    "type": "india",
+    "disabled": false
+  },
+  {
+    "display_name": "RogMovies",
+    "value": "luxMovies",
+    "version": "1.7",
     "icon": "",
     "type": "india",
     "disabled": false
@@ -45,14 +53,6 @@
     "version": "1.5",
     "icon": "",
     "type": "global",
-    "disabled": false
-  },
-  {
-    "display_name": "RogMovies",
-    "value": "luxMovies",
-    "version": "1.6",
-    "icon": "",
-    "type": "india",
     "disabled": false
   },
   {
