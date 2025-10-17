@@ -200,6 +200,14 @@
     "disabled": false
   },
   {
+    "display_name": "pikahd",
+    "value": "pikahd",
+    "version": "1.3",
+    "icon": "",
+    "type": "india",
+    "disabled": false
+  },
+  {
     "display_name": "4khdHub",
     "value": "4khdhub",
     "version": "1.2",
@@ -229,14 +237,6 @@
     "version": "1.2",
     "icon": "",
     "type": "english",
-    "disabled": false
-  },
-  {
-    "display_name": "pikahd",
-    "value": "pikahd",
-    "version": "1.2",
-    "icon": "",
-    "type": "india",
     "disabled": false
   },
   {
