@@ -72,6 +72,14 @@
     "disabled": false
   },
   {
+    "display_name": "bolly4u",
+    "value": "bolly4u",
+    "version": "1.5",
+    "icon": "",
+    "type": "global",
+    "disabled": false
+  },
+  {
     "display_name": "FlixHQ",
     "value": "flixhq",
     "version": "1.4",
@@ -93,14 +101,6 @@
     "version": "1.4",
     "icon": "",
     "type": "india",
-    "disabled": false
-  },
-  {
-    "display_name": "bolly4u",
-    "value": "bolly4u",
-    "version": "1.4",
-    "icon": "",
-    "type": "global",
     "disabled": false
   },
   {
