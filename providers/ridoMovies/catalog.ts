@@ -1,11 +1,11 @@
 export const catalog = [
   {
     title: "Popular Movies",
-    filter: "",
+    filter: "/top/catalog/movie/top.json",
   },
   {
     title: "Featured Movies",
-    filter: "genre/animation/",
+    filter: "/imdbRating/catalog/movie/imdbRating.json",
   },
 ];
 

@@ -1,11 +1,15 @@
 export const catalog = [
   {
-    title: "K-Drama",
-    filter: "category/korean-series/",
+    title: "Trending",
+    filter: "/trending",
   },
   {
-    title: "Anime",
-    filter: "category/anime-series/",
+    title: "Movies",
+    filter: "/recent-movies",
+  },
+  {
+    title: "TV Shows",
+    filter: "/recent-shows",
   },
 ];
 

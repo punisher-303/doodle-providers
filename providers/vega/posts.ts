@@ -38,12 +38,8 @@ export const getPosts = async ({
   const baseUrl = await getBaseUrl("Vega");
 
   console.log("vegaGetPosts baseUrl:", providerValue, baseUrl);
-
-  // Akro filter support
-  const akroFilter = providerValue?.toLowerCase() === "akro" ? "/akro" : "";
-  const url = `${baseUrl}/${filter}${akroFilter}/page/${page}/`;
+  const url = `${baseUrl}/${filter}/page/${page}/`;
   console.log("vegaGetPosts url:", url);
-
   return posts(baseUrl, url, signal, headers, axios, cheerio);
 };
 
@@ -63,14 +59,9 @@ export const getSearchPosts = async ({
   const { getBaseUrl, axios, cheerio } = providerContext;
   const baseUrl = await getBaseUrl("Vega");
 
-  console.log("vegaGetSearchPosts baseUrl:", providerValue, baseUrl);
-
-  // Akro support for search
-  const akroFilter = providerValue?.toLowerCase() === "akro" ? "&akro=true" : "";
-  const url = `${baseUrl}/page/${page}/?s=${encodeURIComponent(
-    searchQuery
-  )}${akroFilter}`;
-  console.log("vegaGetSearchPosts url:", url);
+  console.log("vegaGetPosts baseUrl:", providerValue, baseUrl);
+  const url = `${baseUrl}/page/${page}/?s=${searchQuery}`;
+  console.log("vegaGetPosts url:", url);
 
   return posts(baseUrl, url, signal, headers, axios, cheerio);
 };
@@ -91,15 +82,11 @@ async function posts(
       },
       signal,
     });
-
-    const html = await urlRes.text();
-    const $ = cheerio.load(html);
-
+    const $ = cheerio.load(await urlRes.text());
     const posts: Post[] = [];
-
     $(".blog-items,.post-list")
       ?.children("article")
-      ?.each((_, element) => {
+      ?.each((index, element) => {
         const post = {
           title: (
             $(element)
@@ -119,13 +106,13 @@ async function posts(
             $(element).find("a").find("img").attr("src") ||
             "",
         };
-
-        if (post.image.startsWith("//")) post.image = "https:" + post.image;
-
+        if (post.image.startsWith("//")) {
+          post.image = "https:" + post.image;
+        }
         posts.push(post);
       });
 
-    console.log("Fetched posts:", posts.length);
+    // console.log(posts);
     return posts;
   } catch (error) {
     console.error("vegaGetPosts error:", error);

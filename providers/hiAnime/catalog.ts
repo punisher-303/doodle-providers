@@ -1,11 +1,20 @@
 export const catalog = [
-  { title: "Recent", filter: "" },
-  { title: "Top Airing", filter: "category/multi-audio/" },
+  {
+    title: "Recent",
+    filter: "/anime/zoro/recent-episodes",
+  },
+  {
+    title: "Top Airing",
+    filter: "/anime/zoro/top-airing",
+  },
+  {
+    title: "Most Popular",
+    filter: "/anime/zoro/most-popular",
+  },
+  {
+    title: "Most Favorited",
+    filter: "/anime/zoro/most-favorite",
+  },
 ];
 
-export const genres = [
-  { title: "Action", filter: "/genre/action" },
-  { title: "Adventure", filter: "/genre/adventure" },
-  { title: "Comedy", filter: "/genre/comedy" },
-  { title: "Drama", filter: "/genre/drama" },
-];
+export const genres = [];

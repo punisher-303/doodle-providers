@@ -1,6 +1,6 @@
 import { EpisodeLink, ProviderContext } from "../types";
 
-export async function getEpisodeLinks({
+export const getEpisodes = async function ({
   url,
   providerContext,
 }: {
@@ -8,54 +8,68 @@ export async function getEpisodeLinks({
   providerContext: ProviderContext;
 }): Promise<EpisodeLink[]> {
   try {
-    const res = await providerContext.axios.get(url);
-    const $ = providerContext.cheerio.load(res.data || "");
-    const episodes: EpisodeLink[] = [];
-
-    // Select all episode headings (e.g., <h4>-:Episode: 1:-</h4> or <h4>-:Episodes: 1:-</h4>)
-    $("h4").each((_, h4El) => {
-      const headingText = $(h4El).text().trim();
-      
-      // Regex to extract the episode number (e.g., '1', '2', '03')
-      const match = headingText.match(/-:Episode(s)?:\s*(\d+):-/i);
-
-      if (match && match[2]) {
-        const episodeNumber = match[2].padStart(2, '0'); // Pads with zero (e.g., '01', '02')
-        const episodeTitle = `Episode ${episodeNumber}`; // Final title format
-
-        // Get the next immediate paragraph element after the current <h4>, which holds the links
-        const $linkContainer = $(h4El).next("p");
-
-        // Find the V-Cloud link: must contain "V-Cloud [Resumable]" text and the "vcloud.zip" domain
-        const vCloudLinkEl = $linkContainer.find('a:contains("V-Cloud [Resumable]")');
-        
-        if (vCloudLinkEl.length > 0) {
-          const href = vCloudLinkEl.attr("href")?.trim();
-          
-          if (href && href.includes("vcloud.zip")) {
-            episodes.push({
-              title: episodeTitle,
-              link: href,
-            });
+    if (!url.includes("luxelinks") || url.includes("cinemalux")) {
+      const res = await providerContext.axios.get(url, {
+        headers: providerContext.commonHeaders,
+      });
+      const data = res.data;
+      const encodedLink = data.match(/"link":"([^"]+)"/)?.[1];
+      if (encodedLink) {
+        url = encodedLink ? atob(encodedLink) : url;
+      } else {
+        const redirectUrlRes = await fetch(
+          "https://cm-decrypt.8man.workers.dev/cinemaluxe",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url }),
           }
+        );
+        const redirectUrl = await redirectUrlRes.json();
+        url = redirectUrl?.redirectUrl || url;
+      }
+    }
+    const episodeLinks: EpisodeLink[] = [];
+
+    if (url.includes("luxedrive") || url.includes("drive.linkstore")) {
+      episodeLinks.push({
+        title: "Movie",
+        link: url,
+      });
+      return episodeLinks;
+    }
+    const res = await providerContext.axios.get(url, {
+      headers: providerContext.commonHeaders,
+    });
+    const html = res.data;
+    let $ = providerContext.cheerio.load(html);
+
+    $("a.maxbutton-4,a.maxbutton,.maxbutton-hubcloud,.ep-simple-button").map(
+      (i, element) => {
+        const title = $(element).text()?.trim();
+        const link = $(element).attr("href");
+        if (
+          title &&
+          link &&
+          !title.includes("Batch") &&
+          !title.toLowerCase().includes("zip")
+        ) {
+          episodeLinks.push({
+            title: title
+              .replace(/\(\d{4}\)/, "")
+              .replace("Download", "Movie")
+              .replace("⚡", "")
+              .trim(),
+            link,
+          });
         }
       }
-    });
-
-    return episodes;
+    );
+    return episodeLinks;
   } catch (err) {
-    console.error("getEpisodeLinks error:", err);
+    console.error("cl episode links", err);
     return [];
   }
-}
-
-// --- System wrapper
-export async function getEpisodes({
-  url,
-  providerContext,
-}: {
-  url: string;
-  providerContext: ProviderContext;
-}): Promise<EpisodeLink[]> {
-  return await getEpisodeLinks({ url, providerContext });
-}
+};
