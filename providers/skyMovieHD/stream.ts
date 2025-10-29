@@ -37,6 +37,74 @@ export async function getStream({
   try {
     const streamLinks: Stream[] = [];
     console.log("dotlink", link);
+    if (type === "movie") {
+      // vlink
+      const dotlinkRes = await axios(`${link}`, { headers });
+      const dotlinkText = dotlinkRes.data;
+      // console.log('dotlinkText', dotlinkText);
+      const vlink = dotlinkText.match(/<a\s+href="([^"]*cloud\.[^"]*)"/i) || [];
+      // console.log('vLink', vlink[1]);
+      link = vlink[1];
+
+      // filepress link
+      try {
+        const $ = cheerio.load(dotlinkText);
+        const filepressLink = $(
+          '.btn.btn-sm.btn-outline[style="background:linear-gradient(135deg,rgb(252,185,0) 0%,rgb(0,0,0)); color: #fdf8f2;"]'
+        )
+          .parent()
+          .attr("href");
+        // console.log('filepressLink', filepressLink);
+        const filepressID = filepressLink?.split("/").pop();
+        const filepressBaseUrl = filepressLink
+          ?.split("/")
+          .slice(0, -2)
+          .join("/");
+        // console.log('filepressID', filepressID);
+        // console.log('filepressBaseUrl', filepressBaseUrl);
+        const filepressTokenRes = await axios.post(
+          filepressBaseUrl + "/api/file/downlaod/",
+          {
+            id: filepressID,
+            method: "indexDownlaod",
+            captchaValue: null,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Referer: filepressBaseUrl,
+            },
+          }
+        );
+        // console.log('filepressTokenRes', filepressTokenRes.data);
+        if (filepressTokenRes.data?.status) {
+          const filepressToken = filepressTokenRes.data?.data;
+          const filepressStreamLink = await axios.post(
+            filepressBaseUrl + "/api/file/downlaod2/",
+            {
+              id: filepressToken,
+              method: "indexDownlaod",
+              captchaValue: null,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Referer: filepressBaseUrl,
+              },
+            }
+          );
+          // console.log('filepressStreamLink', filepressStreamLink.data);
+          streamLinks.push({
+            server: "filepress",
+            link: filepressStreamLink.data?.data?.[0],
+            type: "mkv",
+          });
+        }
+      } catch (error) {
+        console.log("filepress error: ");
+        // console.error(error);
+      }
+    }
 
     return await hubcloudExtracter(link, signal);
   } catch (error: any) {

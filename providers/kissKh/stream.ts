@@ -29,7 +29,8 @@ export const getStream = async function ({
     streamLinks.push({
       server: "kissKh",
       link: stream,
-      type: stream?.includes(".mp4") ? "mp4" : "m3u8",
+      type: "m3u8",
+      subtitles,
       headers: {
         referer: baseUrl,
       },
