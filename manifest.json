@@ -250,7 +250,15 @@
   {
     "display_name": "asianflix",
     "value": "asianflix",
-    "version": "1.41",
+    "version": "1.5",
+    "icon": "",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "Zeefliz",
+    "value": "zeefliz",
+    "version": "1.4",
     "icon": "",
     "type": "global",
     "disabled": false
@@ -274,14 +282,6 @@
   {
     "display_name": "Movies4U",
     "value": "movies4u",
-    "version": "1.3",
-    "icon": "",
-    "type": "global",
-    "disabled": false
-  },
-  {
-    "display_name": "Zeefliz",
-    "value": "zeefliz",
     "version": "1.3",
     "icon": "",
     "type": "global",
@@ -478,6 +478,14 @@
     "version": "1.0",
     "icon": "",
     "type": "global",
-    "disabled": false       
+    "disabled": false
+  },
+  {
+    "display_name": "7starHD",
+    "value": "7starHD",
+    "version": "1.0",
+    "icon": "",
+    "type": "global",
+    "disabled": false        
   }
 ]
