@@ -10,7 +10,7 @@
   {
     "display_name": "CinemaLuxe",
     "value": "cinemaLuxe",
-    "version": "2.1",
+    "version": "2.2",
     "icon": "",
     "type": "global",
     "disabled": false
@@ -486,6 +486,23 @@
     "version": "1.0",
     "icon": "",
     "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "HubMovies",
+    "value": "HubMovies",
+    "version": "1.0",
+    "icon": "",
+    "type": "global",
+    "disabled": false  
+   },
+   {
+    "display_name": "HiAnime1",
+    "value": "HiAnime1",
+    "version": "1.0",
+    "icon": "",
+    "type": "global",
     "disabled": false        
   }
+
 ]
