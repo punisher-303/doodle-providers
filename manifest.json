@@ -502,7 +502,15 @@
     "version": "1.0",
     "icon": "",
     "type": "global",
-    "disabled": false        
+    "disabled": false
+  },
+  {
+    "display_name": "DramaKey",
+    "value": "DramaKey",
+    "version": "1.0",
+    "icon": "",
+    "type": "global",
+    "disabled": false         
   }
 
 ]
