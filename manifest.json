@@ -128,6 +128,14 @@
     "disabled": false
   },
   {
+    "display_name": "cinevood",
+    "value": "cinevood",
+    "version": "1.6",
+    "icon": "",
+    "type": "india",
+    "disabled": false
+  },
+  {
     "display_name": "HDMovie2",
     "value": "MovieTP",
     "version": "1.5",
@@ -181,14 +189,6 @@
     "version": "1.5",
     "icon": "",
     "type": "global",
-    "disabled": false
-  },
-  {
-    "display_name": "cinevood",
-    "value": "cinevood",
-    "version": "1.5",
-    "icon": "",
-    "type": "india",
     "disabled": false
   },
   {
