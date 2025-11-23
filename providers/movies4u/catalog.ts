@@ -1,10 +1,10 @@
 export const catalog = [
   {
     title: "Trending",
-    filter: "",
+    filter: "korean-series/",
   },
   {
-    title: "Anime",
-    filter: "/category/anime/",
+    title: "Web",
+    filter: "category/web-series/",
   },
 ];

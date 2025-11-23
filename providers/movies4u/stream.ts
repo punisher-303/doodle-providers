@@ -34,19 +34,33 @@ export async function getStream({
 }) {
   const { axios, cheerio, extractors } = providerContext;
   const { hubcloudExtracter } = extractors;
+
   try {
     const streamLinks: Stream[] = [];
+
     console.log("dotlink", link);
+
+    // ⭐ Direct pass to hubcloud for vcloud/cloud links
+    if (
+      link.includes("vcloud.zip") ||
+      link.includes("hubcloud") ||
+      link.includes("cloud")
+    ) {
+      return await hubcloudExtracter(link, signal);
+    }
+
     if (type === "movie") {
-      // vlink
+      // Fetch main page
       const dotlinkRes = await axios(`${link}`, { headers });
       const dotlinkText = dotlinkRes.data;
-      // console.log('dotlinkText', dotlinkText);
-      const vlink = dotlinkText.match(/<a\s+href="([^"]*cloud\.[^"]*)"/i) || [];
-      // console.log('vLink', vlink[1]);
-      link = vlink[1];
 
-      // filepress link
+      // Extract 'vlink' cloud link
+      const vlink = dotlinkText.match(/<a\s+href="([^"]*cloud\.[^"]*)"/i) || [];
+      if (vlink[1]) {
+        link = vlink[1];
+      }
+
+      // Try filepress extraction
       try {
         const $ = cheerio.load(dotlinkText);
         const filepressLink = $(
@@ -54,35 +68,15 @@ export async function getStream({
         )
           .parent()
           .attr("href");
-        // console.log('filepressLink', filepressLink);
-        const filepressID = filepressLink?.split("/").pop();
-        const filepressBaseUrl = filepressLink
-          ?.split("/")
-          .slice(0, -2)
-          .join("/");
-        // console.log('filepressID', filepressID);
-        // console.log('filepressBaseUrl', filepressBaseUrl);
-        const filepressTokenRes = await axios.post(
-          filepressBaseUrl + "/api/file/downlaod/",
-          {
-            id: filepressID,
-            method: "indexDownlaod",
-            captchaValue: null,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Referer: filepressBaseUrl,
-            },
-          }
-        );
-        // console.log('filepressTokenRes', filepressTokenRes.data);
-        if (filepressTokenRes.data?.status) {
-          const filepressToken = filepressTokenRes.data?.data;
-          const filepressStreamLink = await axios.post(
-            filepressBaseUrl + "/api/file/downlaod2/",
+
+        if (filepressLink) {
+          const filepressID = filepressLink.split("/").pop();
+          const filepressBaseUrl = filepressLink.split("/").slice(0, -2).join("/");
+
+          const filepressTokenRes = await axios.post(
+            filepressBaseUrl + "/api/file/downlaod/",
             {
-              id: filepressToken,
+              id: filepressID,
               method: "indexDownlaod",
               captchaValue: null,
             },
@@ -93,25 +87,41 @@ export async function getStream({
               },
             }
           );
-          // console.log('filepressStreamLink', filepressStreamLink.data);
-          streamLinks.push({
-            server: "filepress",
-            link: filepressStreamLink.data?.data?.[0],
-            type: "mkv",
-          });
+
+          if (filepressTokenRes.data?.status) {
+            const token = filepressTokenRes.data?.data;
+
+            const filepressStreamLink = await axios.post(
+              filepressBaseUrl + "/api/file/downlaod2/",
+              {
+                id: token,
+                method: "indexDownlaod",
+                captchaValue: null,
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                  Referer: filepressBaseUrl,
+                },
+              }
+            );
+
+            streamLinks.push({
+              server: "filepress",
+              link: filepressStreamLink.data?.data?.[0],
+              type: "mkv",
+            });
+          }
         }
       } catch (error) {
         console.log("filepress error: ");
-        // console.error(error);
       }
     }
 
+    // Final fallback to hubcloud extractor
     return await hubcloudExtracter(link, signal);
   } catch (error: any) {
     console.log("getStream error: ", error);
-    if (error.message.includes("Aborted")) {
-    } else {
-    }
     return [];
   }
 }
