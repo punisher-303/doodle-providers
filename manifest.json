@@ -450,7 +450,7 @@
   {
     "display_name": "cinevood1",
     "value": "cinevood1",
-    "version": "1.3",
+    "version": "1.4",
     "icon": "",
     "type": "india",
     "disabled": false
@@ -517,7 +517,23 @@
     "version": "1.0",
     "icon": "",
     "type": "global",
-    "disabled": false          
+    "disabled": false
+  },
+  {
+    "display_name": "AnimeSalt",
+    "value": "AnimeSalt",
+    "version": "1.0",
+    "icon": "",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "AnimeWorld",
+    "value": "AnimeWorld",
+    "version": "1.0",
+    "icon": "",
+    "type": "global",
+    "disabled": false            
   }
 
 ]
