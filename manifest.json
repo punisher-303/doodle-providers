@@ -21,7 +21,7 @@
     "version": "2.0",
     "icon": "",
     "type": "global",
-    "disabled": false
+    "disabled": true
   },
   {
     "display_name": "PrimeVideo",
@@ -109,7 +109,7 @@
     "version": "1.6",
     "icon": "",
     "type": "italy",
-    "disabled": false
+    "disabled": true
   },
   {
     "display_name": "maze",
