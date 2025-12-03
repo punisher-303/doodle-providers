@@ -18,10 +18,10 @@
   {
     "display_name": "Netflix",
     "value": "netflixMirror",
-    "version": "2.0",
+    "version": "2.1",
     "icon": "",
     "type": "global",
-    "disabled": true
+    "disabled": false
   },
   {
     "display_name": "PrimeVideo",
