@@ -9,7 +9,7 @@ export const getMeta = async function ({
   try {
     const isPrime =
       providerValue === "primeMirror" ? "isPrime=true" : "isPrime=false";
-    const url = `https://net-cookie-kacj.vercel.app/api/netmirror?${isPrime}&url=${encodeURIComponent(
+    const url = `https://netmirror.8man.dev/api/net-proxy?${isPrime}&url=${encodeURIComponent(
       link
     )}`;
     console.log("nfifo", url);
