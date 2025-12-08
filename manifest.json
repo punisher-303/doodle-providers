@@ -5,7 +5,7 @@
     "version": "3.0",
     "icon": "",
     "type": "global",
-    "disabled": true
+    "disabled": false
   },
   {
     "display_name": "CinemaLuxe",
