@@ -34,11 +34,7 @@
   {
     "display_name": "Dooflix",
     "value": "dooflix",
-<<<<<<< HEAD
     "version": "2.3",
-=======
-    "version": "2.2",
->>>>>>> 7f000b622e14a4045c1d1bf3af4fa78965b8b3b3
     "icon": "",
     "type": "india",
     "disabled": false
@@ -134,11 +130,7 @@
   {
     "display_name": "cinevood",
     "value": "cinevood",
-<<<<<<< HEAD
     "version": "2.1",
-=======
-    "version": "2.0",
->>>>>>> 7f000b622e14a4045c1d1bf3af4fa78965b8b3b3
     "icon": "",
     "type": "india",
     "disabled": false
@@ -349,11 +341,7 @@
     "version": "1.5",
     "icon": "",
     "type": "english",
-<<<<<<< HEAD
     "disabled": false
-=======
-    "disabled": true
->>>>>>> 7f000b622e14a4045c1d1bf3af4fa78965b8b3b3
   },
   {
     "display_name": "Primewire",
@@ -385,11 +373,7 @@
     "version": "1.5",
     "icon": "",
     "type": "india",
-<<<<<<< HEAD
     "disabled": false
-=======
-    "disabled": true
->>>>>>> 7f000b622e14a4045c1d1bf3af4fa78965b8b3b3
   },
   {
     "display_name": "Rareanime",
@@ -402,11 +386,7 @@
   {
     "display_name": "streamflix",
     "value": "streamflix",
-<<<<<<< HEAD
     "version": "1.7",
-=======
-    "version": "1.6",
->>>>>>> 7f000b622e14a4045c1d1bf3af4fa78965b8b3b3
     "icon": "",
     "type": "india",
     "disabled": false
@@ -502,11 +482,7 @@
   {
     "display_name": "Bollyflix",
     "value": "Bollyflix",
-<<<<<<< HEAD
     "version": "1.5",
-=======
-    "version": "1.3",
->>>>>>> 7f000b622e14a4045c1d1bf3af4fa78965b8b3b3
     "icon": "",
     "type": "global",
     "disabled": false
@@ -558,7 +534,6 @@
     "icon": "",
     "type": "global",
     "disabled": false
-<<<<<<< HEAD
   },
   {
     "display_name": "Kaido",
@@ -591,7 +566,5 @@
     "icon": "",
     "type": "global",
     "disabled": false
-=======
->>>>>>> 7f000b622e14a4045c1d1bf3af4fa78965b8b3b3
   }
 ]
