@@ -370,7 +370,7 @@
   {
     "display_name": "Toono",
     "value": "Toono",
-    "version": "1.5",
+    "version": "1.6",
     "icon": "",
     "type": "india",
     "disabled": false
@@ -566,5 +566,13 @@
     "icon": "",
     "type": "global",
     "disabled": false
+  },
+  {
+    "display_name": "Dramafull",
+    "value": "Dramafull",
+    "version": "1.0",
+    "icon": "",
+    "type": "global",
+    "disabled": false  
   }
 ]
