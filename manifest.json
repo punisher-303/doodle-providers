@@ -341,7 +341,7 @@
     "version": "1.5",
     "icon": "",
     "type": "english",
-    "disabled": false
+    "disabled": true
   },
   {
     "display_name": "Primewire",
@@ -506,14 +506,6 @@
   {
     "display_name": "DramaKey",
     "value": "DramaKey",
-    "version": "1.2",
-    "icon": "",
-    "type": "global",
-    "disabled": false
-  },
-  {
-    "display_name": "Movies4u",
-    "value": "movies4u",
     "version": "1.2",
     "icon": "",
     "type": "global",
