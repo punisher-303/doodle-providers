@@ -632,7 +632,7 @@
   {
     "display_name": "Anikuro",
     "value": "anikuro",
-    "version": "1.0",
+    "version": "1.1",
     "icon": "https://anikuro.ru/static/favicon/apple-touch-icon.png",
     "type": "japana",
     "category": "anime",
@@ -641,7 +641,7 @@
   {
     "display_name": "123anime",
     "value": "123anime",
-    "version": "1.0",
+    "version": "1.1",
     "icon": "https://123animes.ru/assets/favicons/favicon.png",
     "type": "global",
     "category": "anime",
