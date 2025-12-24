@@ -1,14 +1,22 @@
 export const catalog = [
   {
-    title: "Trending",
-    filter: "",
+    title: "Latest Movies",
+    filter: "category/movie/",
   },
   {
-    title: "Animation",
-    filter: "category/animation/",
+    title: "Web Series",
+    filter: "category/web-series/",
   },
   {
-    title:  "Apple-TV",
+    title: "Dual Audio",
+    filter: "category/dual-audio-movies/",
+  },
+  {
+    title: "Year 2024",
+    filter: "year/2024/",
+  },
+  {
+    title: "Netflix",
     filter: "category/netflix/",
   },
 ];

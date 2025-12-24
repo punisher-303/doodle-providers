@@ -11,7 +11,7 @@
   {
     "display_name": "CinemaLuxe",
     "value": "cinemaLuxe",
-    "version": "2.7",
+    "version": "2.8",
     "icon": "https://cinemalux.tel/wp-content/uploads/2025/03/cropped-icons8-film-reel-48-192x192.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -636,7 +636,7 @@
     "icon": "https://anikuro.ru/static/favicon/apple-touch-icon.png",
     "type": "japana",
     "category": "anime",
-    "disabled": false  
+    "disabled": false
   },
   {
     "display_name": "123anime",
@@ -645,7 +645,7 @@
     "icon": "https://123animes.ru/assets/favicons/favicon.png",
     "type": "global",
     "category": "anime",
-    "disabled": false  
+    "disabled": false
   },
   {
     "display_name": "AnimeHeaven",
