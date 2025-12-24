@@ -11,7 +11,7 @@
   {
     "display_name": "CinemaLuxe",
     "value": "cinemaLuxe",
-    "version": "2.8",
+    "version": "2.9",
     "icon": "https://cinemalux.tel/wp-content/uploads/2025/03/cropped-icons8-film-reel-48-192x192.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -654,6 +654,15 @@
     "icon": "https://animeheaven.me/og.png",
     "type": "global",
     "category": "anime",
+    "disabled": false
+  },
+  {
+    "display_name": "Animekhor",
+    "value": "animekhor",
+    "version": "1.0",
+    "icon": "https://i3.wp.com/animekhor.org/wp-content/uploads/2022/02/cropped-logo-32x32.png",
+    "type": "global",
+    "category": "donghua",
     "disabled": false
   }
 ]

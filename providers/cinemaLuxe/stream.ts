@@ -1,11 +1,25 @@
+
 import { ProviderContext, Stream } from "../types";
 
 const headers = {
   Accept:
-    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+  "Cache-Control": "no-store",
   "Accept-Language": "en-US,en;q=0.9",
+  DNT: "1",
+  "sec-ch-ua":
+    '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": '"Windows"',
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  Cookie:
+    "xla=s4t; _ga=GA1.1.1081149560.1756378968; _ga_BLZGKYN5PF=GS2.1.s1756378968$o1$g1$t1756378984$j44$l0$h0",
+  "Upgrade-Insecure-Requests": "1",
   "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
 };
 
 export async function getStream({
@@ -18,60 +32,87 @@ export async function getStream({
   type: string;
   signal: AbortSignal;
   providerContext: ProviderContext;
-}): Promise<Stream[]> {
+}) {
   const { axios, cheerio, extractors } = providerContext;
   const { hubcloudExtracter } = extractors;
-
   try {
     const streamLinks: Stream[] = [];
+    console.log("dotlink", link);
+    if (type === "movie") {
+      // vlink
+      const dotlinkRes = await axios(`${link}`, { headers });
+      const dotlinkText = dotlinkRes.data;
+      // console.log('dotlinkText', dotlinkText);
+      const vlink = dotlinkText.match(/<a\s+href="([^"]*cloud\.[^"]*)"/i) || [];
+      // console.log('vLink', vlink[1]);
+      link = vlink[1];
 
-    // Fetch the movie page
-    const res = await axios.get(link, { headers, signal });
-    const $ = cheerio.load(res.data);
-
-    const downloadLinks: string[] = [];
-
-    // Strategy 1: Look for "Download" text in links
-    $("a").each((_, el) => {
-      const text = $(el).text().trim();
-      const href = $(el).attr("href");
-      if (href && (text.includes("Download") || text.includes("Drive") || href.includes("hubcloud") || href.includes("gdflix"))) {
-        // Filter out internal links or unrelated downloads if necessary
-        if (href.startsWith("http")) {
-          downloadLinks.push(href);
-        }
-      }
-    });
-
-    // Strategy 2: Look for specific classes if Strategy 1 yields nothing (fallback)
-    if (downloadLinks.length === 0) {
-      $(".download-link, .dlink").each((_, el) => {
-        const href = $(el).attr("href");
-        if (href) downloadLinks.push(href);
-      });
-    }
-
-    // Resolve links
-    const uniqueLinks = [...new Set(downloadLinks)];
-    console.log("Found links:", uniqueLinks);
-
-    for (const dLink of uniqueLinks) {
-      // We rely on hubcloudExtracter to handle supported hosts (hubcloud, gdflix, etc.)
-      // It returns an array of streams.
+      // filepress link
       try {
-        const streams = await hubcloudExtracter(dLink, signal);
-        if (streams && streams.length > 0) {
-          streamLinks.push(...streams);
+        const $ = cheerio.load(dotlinkText);
+        const filepressLink = $(
+          '.btn.btn-sm.btn-outline[style="background:linear-gradient(135deg,rgb(252,185,0) 0%,rgb(0,0,0)); color: #fdf8f2;"]'
+        )
+          .parent()
+          .attr("href");
+        // console.log('filepressLink', filepressLink);
+        const filepressID = filepressLink?.split("/").pop();
+        const filepressBaseUrl = filepressLink
+          ?.split("/")
+          .slice(0, -2)
+          .join("/");
+        // console.log('filepressID', filepressID);
+        // console.log('filepressBaseUrl', filepressBaseUrl);
+        const filepressTokenRes = await axios.post(
+          filepressBaseUrl + "/api/file/downlaod/",
+          {
+            id: filepressID,
+            method: "indexDownlaod",
+            captchaValue: null,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Referer: filepressBaseUrl,
+            },
+          }
+        );
+        // console.log('filepressTokenRes', filepressTokenRes.data);
+        if (filepressTokenRes.data?.status) {
+          const filepressToken = filepressTokenRes.data?.data;
+          const filepressStreamLink = await axios.post(
+            filepressBaseUrl + "/api/file/downlaod2/",
+            {
+              id: filepressToken,
+              method: "indexDownlaod",
+              captchaValue: null,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Referer: filepressBaseUrl,
+              },
+            }
+          );
+          // console.log('filepressStreamLink', filepressStreamLink.data);
+          streamLinks.push({
+            server: "filepress",
+            link: filepressStreamLink.data?.data?.[0],
+            type: "mkv",
+          });
         }
-      } catch (e) {
-        console.log(`Error extracting from ${dLink}:`, e);
+      } catch (error) {
+        console.log("filepress error: ");
+        // console.error(error);
       }
     }
 
-    return streamLinks;
-
+    return await hubcloudExtracter(link, signal);
   } catch (error: any) {
     console.log("getStream error: ", error);
+    if (error.message.includes("Aborted")) {
+    } else {
+    }
     return [];
   }
 }
