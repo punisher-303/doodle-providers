@@ -1,13 +1,1 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.catalog = void 0;
-exports.catalog = [
-    {
-        title: "Latest",
-        filter: "",
-    },
-    {
-        title: "Netflix",
-        filter: "recently-updated",
-    },
-];
+"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.catalog=void 0,exports.catalog=[{title:"Latest",filter:""},{title:"Netflix",filter:"recently-updated"}];
