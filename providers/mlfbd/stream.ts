@@ -20,9 +20,19 @@ export async function getStream({
         };
 
         //console.log("mlfbd getStream", link);
+
+        // INSTANT DEBUG: Verify function execution immediately
+        const streams: Stream[] = [];
+        streams.push({
+            server: "Insta-Debug: Version 2.3",
+            link: "https://google.com",
+            type: "mkv"
+        });
+
+        // Continue with actual fetch
         const res = await axios.get(link, { headers, signal });
         const $ = cheerio.load(res.data);
-        const streams: Stream[] = [];
+        // const streams: Stream[] = []; // removed valid line since we init above
 
         // Strategy 1: Look for the download table
         // Selector: #download .links_table table tr

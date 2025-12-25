@@ -8,9 +8,17 @@ async function getStream({ link, type, signal, providerContext, }) {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         };
         //console.log("mlfbd getStream", link);
+        // INSTANT DEBUG: Verify function execution immediately
+        const streams = [];
+        streams.push({
+            server: "Insta-Debug: Version 2.3",
+            link: "https://google.com",
+            type: "mkv"
+        });
+        // Continue with actual fetch
         const res = await axios.get(link, { headers, signal });
         const $ = cheerio.load(res.data);
-        const streams = [];
+        // const streams: Stream[] = []; // removed valid line since we init above
         // Strategy 1: Look for the download table
         // Selector: #download .links_table table tr
         const pendingStreams = [];

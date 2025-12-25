@@ -118,6 +118,8 @@ export async function getSearchPosts({
                 title = $(element).find("img").attr("alt") || $(element).find("a").attr("title") || "";
             }
 
+
+
             // Handle lazy load for search too
             if (image && image.includes("data:image")) {
                 const dataSrc = $(element).find("img").attr("data-src");
