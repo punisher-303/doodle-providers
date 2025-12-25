@@ -44,7 +44,11 @@ export async function getPosts({
             const title = $(element).find(".data h3").text().trim();
             // Support both .poster and .image classes
             const link = $(element).find(".poster a, .image a").first().attr("href");
-            const image = $(element).find(".poster img, .image img").first().attr("src");
+            let image = $(element).find(".poster img, .image img").first().attr("src");
+
+            if (image && !image.startsWith("http")) {
+                image = baseUrl + image;
+            }
 
             if (title && link) {
                 catalog.push({
