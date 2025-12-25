@@ -524,7 +524,7 @@
   {
     "display_name": "GokuHD",
     "value": "GokuHD",
-    "version": "1.4",
+    "version": "1.5",
     "icon": "https://www.gokuhd.com/wp-content/uploads/2025/07/Goku-Favicon.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -551,7 +551,7 @@
   {
     "display_name": "HiAnime1",
     "value": "HiAnime1",
-    "version": "1.3",
+    "version": "1.4",
     "icon": "https://hianime.tv/proxy/favicon.png",
     "type": "global",
     "category": "anime",
