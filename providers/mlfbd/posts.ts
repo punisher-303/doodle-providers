@@ -46,7 +46,13 @@ export async function getPosts({
             const link = $(element).find(".poster a, .image a").first().attr("href");
             let image = $(element).find(".poster img, .image img").first().attr("src");
 
-            if (image && !image.startsWith("http")) {
+            // Fix for lazy loaded images or placeholders
+            if (image && image.includes("data:image")) {
+                const dataSrc = $(element).find(".poster img, .image img").first().attr("data-src");
+                if (dataSrc) image = dataSrc;
+            }
+
+            if (image && !image.startsWith("http") && !image.startsWith("data:")) {
                 image = baseUrl + image;
             }
 
@@ -100,12 +106,27 @@ export async function getSearchPosts({
 
         // Search results often use the same 'article.item' or similar structure 'article.post'
         // I'll check for 'article.item' first, or fallback to 'article'.
-        const searchSelector = "article.item, article.result-item, article.post";
+        const searchSelector = ".search-page article, article";
 
         $(searchSelector).each((index: number, element: any) => {
-            const title = $(element).find(".data h3, .title h2, h2.title").text().trim();
-            const link = $(element).find("a").attr("href");
-            const image = $(element).find("img").attr("src");
+            let title = $(element).find(".data h3, .title h2, h2.title, h3 a, h2 a, .contenido h3 a").text().trim();
+            const link = $(element).find("a").first().attr("href");
+            let image = $(element).find("img").attr("src");
+
+            // Fallback for title: checks alt text of image or title attribute of link
+            if (!title) {
+                title = $(element).find("img").attr("alt") || $(element).find("a").attr("title") || "";
+            }
+
+            // Handle lazy load for search too
+            if (image && image.includes("data:image")) {
+                const dataSrc = $(element).find("img").attr("data-src");
+                if (dataSrc) image = dataSrc;
+            }
+
+            if (image && !image.startsWith("http") && !image.startsWith("data:")) {
+                image = baseUrl + image;
+            }
 
             if (title && link && !catalog.some((p) => p.link === link)) {
                 catalog.push({
