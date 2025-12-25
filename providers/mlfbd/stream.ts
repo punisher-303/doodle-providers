@@ -13,7 +13,7 @@ export async function getStream({
     providerContext: ProviderContext;
 }): Promise<Stream[]> {
     try {
-        const { axios, cheerio } = providerContext;
+        const { axios, cheerio, extractors } = providerContext;
         const headers = {
             "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -26,6 +26,8 @@ export async function getStream({
 
         // Strategy 1: Look for the download table
         // Selector: #download .links_table table tr
+        const pendingStreams: Promise<void>[] = [];
+
         $("#download .links_table table tr").each((_: number, el: any) => {
             // Typically: 
             // <td>...Quality...</td> <td>...Server...</td> <td>...Size...</td> <td><a href="...">Download</a></td>
@@ -41,14 +43,43 @@ export async function getStream({
                 else if (rowText.includes("2160p") || rowText.includes("4k")) resolution = "4k";
 
                 if (url) {
-                    streams.push({
-                        server: "Mlfbd " + resolution, // Label it clearly
-                        link: url,
-                        type: "mkv", // Most of these are direct mkv/mp4 or wrapped
-                    });
+                    // Mlfbd links usually redirect to a file host or an extractor compatible site like gdflix.
+                    // We need to resolve the redirect.
+                    pendingStreams.push((async () => {
+                        try {
+                            // Follow the redirect to see where it goes
+                            const linkRes = await axios.get(url, {
+                                headers,
+                                maxRedirects: 5,
+                                validateStatus: (status) => status < 400 // Accept 3xx
+                            });
+
+                            const finalUrl = linkRes.request.res.responseUrl || url;
+                            // console.log("Resolved", url, "to", finalUrl);
+
+                            if (finalUrl.includes("gdflix") || finalUrl.includes("drivebot")) {
+                                const extracted = await extractors.gdFlixExtracter(finalUrl, signal);
+                                extracted.forEach(s => {
+                                    s.server = `Mlfbd ${resolution} - ${s.server}`;
+                                    streams.push(s);
+                                });
+                            } else {
+                                // Fallback: it might be a direct link or handled by generic extractors
+                                streams.push({
+                                    server: "Mlfbd " + resolution,
+                                    link: finalUrl,
+                                    type: "mkv",
+                                });
+                            }
+                        } catch (e: any) {
+                            // console.error("Error resolving mlfbd link", url, e.message);
+                        }
+                    })());
                 }
             }
         });
+
+        await Promise.all(pendingStreams);
 
         // Strategy 2: Look for 'Watch Online' player options if Downloads are empty
         // But typically downloads are better. 
