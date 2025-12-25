@@ -3,3 +3,4 @@ build/
 *.log
 *.env
 build-mlfbd-only.js
+debug-mlfbd.js
