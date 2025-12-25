@@ -650,7 +650,7 @@
   {
     "display_name": "AnimeHeaven",
     "value": "animeheaven",
-    "version": "1.0",
+    "version": "1.1",
     "icon": "https://animeheaven.me/og.png",
     "type": "global",
     "category": "anime",
@@ -659,7 +659,7 @@
   {
     "display_name": "Animekhor",
     "value": "animekhor",
-    "version": "1.0",
+    "version": "1.1",
     "icon": "https://i3.wp.com/animekhor.org/wp-content/uploads/2022/02/cropped-logo-32x32.png",
     "type": "global",
     "category": "donghua",
