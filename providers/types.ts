@@ -57,8 +57,7 @@ export interface Link {
   directLinks?: {
     title: string;
     link: string;
-    type?: "movie" | "series" | "episode";
-    quality?: string;
+    type?: "movie" | "series";
   }[];
 }
 
