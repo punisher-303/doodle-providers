@@ -1,1 +1,75 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getEpisodes=void 0;const getEpisodes=function({url:url,providerContext:providerContext}){const{axios:axios,cheerio:cheerio,commonHeaders:commonHeaders}=providerContext;return axios.get(url,{headers:commonHeaders}).then(res=>{const $=cheerio.load(res.data),episodePages=[];if($("#episode_by_temp li").each((_,el)=>{const card=$(el),title=card.find("h2.entry-title").text().trim()||card.find(".num-epi").text().trim();let page=card.find("a.lnk-blk").attr("href")||"";page&&(page.startsWith("//")&&(page="https:"+page),episodePages.push({title:title,page:page}))}),0===episodePages.length)return resolveEpisodeStream(url,axios,cheerio,commonHeaders,"Play").then(r=>r?[r]:[]);const tasks=episodePages.map(ep=>resolveEpisodeStream(ep.page,axios,cheerio,commonHeaders,ep.title));return Promise.all(tasks).then(all=>all.filter(Boolean))}).catch(err=>[])};function resolveEpisodeStream(episodePage,axios,cheerio,headers,title){return axios.get(episodePage,{headers:headers}).then(res=>{const $=cheerio.load(res.data);let embed=$("section.player iframe").first().attr("src")||$("iframe").first().attr("src")||"";return embed?(embed.startsWith("//")&&(embed="https:"+embed),axios.get(embed,{headers:headers}).then(embedRes=>{let stream=cheerio.load(embedRes.data)(".Video iframe").attr("src")||"";return stream?(stream.startsWith("//")&&(stream="https:"+stream),{title:title,link:stream}):null})):null}).catch(()=>null)}exports.getEpisodes=getEpisodes;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getEpisodes = void 0;
+const getEpisodes = function ({ url, providerContext, }) {
+    const { axios, cheerio, commonHeaders } = providerContext;
+    return axios
+        .get(url, { headers: commonHeaders })
+        .then((res) => {
+        const $ = cheerio.load(res.data);
+        const episodePages = [];
+        // =====================================================
+        // STEP 1️⃣ : SERIES PAGE → EPISODE PAGES
+        // =====================================================
+        $("#episode_by_temp li").each((_, el) => {
+            const card = $(el);
+            const title = card.find("h2.entry-title").text().trim() ||
+                card.find(".num-epi").text().trim();
+            let page = card.find("a.lnk-blk").attr("href") || "";
+            if (page) {
+                if (page.startsWith("//"))
+                    page = "https:" + page;
+                episodePages.push({ title, page });
+            }
+        });
+        // =====================================================
+        // STEP 2️⃣ : IF DIRECT EPISODE PAGE
+        // =====================================================
+        if (episodePages.length === 0) {
+            return resolveEpisodeStream(url, axios, cheerio, commonHeaders, "Play").then((r) => (r ? [r] : []));
+        }
+        // =====================================================
+        // STEP 3️⃣ : VISIT EACH EPISODE PAGE
+        // =====================================================
+        const tasks = episodePages.map((ep) => resolveEpisodeStream(ep.page, axios, cheerio, commonHeaders, ep.title));
+        return Promise.all(tasks).then((all) => all.filter(Boolean));
+    })
+        .catch((err) => {
+        console.log("episodes error:", err);
+        return [];
+    });
+};
+exports.getEpisodes = getEpisodes;
+// =====================================================
+// 🔥 CORE: 2-STEP IFRAME RESOLVER
+// =====================================================
+function resolveEpisodeStream(episodePage, axios, cheerio, headers, title) {
+    return axios
+        .get(episodePage, { headers })
+        .then((res) => {
+        const $ = cheerio.load(res.data);
+        // 1️⃣ FIRST IFRAME (toonstream embed)
+        let embed = $("section.player iframe").first().attr("src") ||
+            $("iframe").first().attr("src") ||
+            "";
+        if (!embed)
+            return null;
+        if (embed.startsWith("//"))
+            embed = "https:" + embed;
+        // 2️⃣ OPEN EMBED PAGE
+        return axios.get(embed, { headers }).then((embedRes) => {
+            const $$ = cheerio.load(embedRes.data);
+            // ✅ REAL STREAM IFRAME
+            let stream = $$(".Video iframe").attr("src") || "";
+            if (!stream)
+                return null;
+            if (stream.startsWith("//"))
+                stream = "https:" + stream;
+            return {
+                title,
+                link: stream,
+            };
+        });
+    })
+        .catch(() => null);
+}

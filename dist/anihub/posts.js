@@ -1,1 +1,176 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getPosts=getPosts,exports.getSearchPosts=getSearchPosts;const defaultHeaders={Referer:"https://www.google.com","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",Accept:"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Language":"en-US,en;q=0.9",Pragma:"no-cache","Cache-Control":"no-cache"};async function getPosts({filter:filter,page:page=1,signal:signal,providerContext:providerContext}){return fetchPosts({filter:filter,page:page,query:"",signal:signal,providerContext:providerContext})}async function getSearchPosts({searchQuery:searchQuery,page:page=1,signal:signal,providerContext:providerContext}){return fetchPosts({filter:"",page:page,query:searchQuery,signal:signal,providerContext:providerContext})}async function fetchPosts({filter:filter,query:query,page:page=1,signal:signal,providerContext:providerContext}){try{const baseUrl="https://anihub.in";let url;url=query&&query.trim()?`${baseUrl}/search.php?search=${encodeURIComponent(query)}`:filter?filter.startsWith("/")?`${baseUrl}${filter.replace(/\/$/,"")}${page>1?`/page/${page}`:""}`:`${baseUrl}/${filter}${page>1?`/page/${page}`:""}`:`${baseUrl}${page>1?`/page/${page}`:""}`;const{axios:axios,cheerio:cheerio}=providerContext,res=await axios.get(url,{headers:defaultHeaders,signal:signal}),$=cheerio.load(res.data||""),resolveUrl=href=>(null==href?void 0:href.startsWith("http"))?href:new URL(href,baseUrl).href,seen=new Set,catalog=[],POST_SELECTORS=[".anime-blog",".banner-block","li.post",".swiper-slide li",".latest-movies-series-swiper-slide li","ul.post-lst li"].join(",");return $(POST_SELECTORS).each((_,el)=>{var _a,_b,_c;const postElement=$(el);if(postElement.hasClass("anime-blog")){let link=postElement.find(".action-overlay a[href]").attr("href")||postElement.find("> a[href]").attr("href")||"";if(!link)return;if(link=resolveUrl(link),seen.has(link))return;let title=postElement.find("> a p").text().trim()||(null===(_a=postElement.find("img").attr("alt"))||void 0===_a?void 0:_a.trim())||"";if(!title)return;let img=postElement.find("img").attr("src")||"";const image=img?resolveUrl(img):"";return seen.add(link),void catalog.push({title:title,link:link,image:image})}if(postElement.hasClass("banner-block")){const title=postElement.find(".banner-content h2.title").text().trim()||(null===(_b=postElement.find("img").attr("alt"))||void 0===_b?void 0:_b.trim())||"";if(!title)return;let link=postElement.find("a.play-butn").attr("href")||"";if(!link)return;if(link=resolveUrl(link),seen.has(link))return;let img=postElement.find("img").attr("src")||"";if(!img){const styleAttr=postElement.attr("style"),match=styleAttr?styleAttr.match(/url\(([^)]+)\)/i):null;match&&match[1]&&(img=match[1].replace(/['"]/g,"").trim())}const image=img?resolveUrl(img):"";return seen.add(link),void catalog.push({title:title,link:link,image:image})}if(postElement.is("li.post")||postElement.is("ul.post-lst li")){let link=postElement.find("a[href]").first().attr("href")||"";if(!link)return;if(link=resolveUrl(link),seen.has(link))return;let rawTitle=postElement.find("h2.entry-title").first().text().trim()||(null===(_c=postElement.find("img").attr("alt"))||void 0===_c?void 0:_c.trim())||"";if(!rawTitle)return;let title=rawTitle.replace(/^Image\s+/,"").trim(),img=postElement.find("img").attr("data-src")||postElement.find("img").attr("src")||"";const image=img?resolveUrl(img):"";return seen.add(link),void catalog.push({title:title,link:link,image:image})}}),catalog.slice(0,100)}catch(err){return[]}}
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getPosts = getPosts;
+exports.getSearchPosts = getSearchPosts;
+const defaultHeaders = {
+    Referer: "https://www.google.com",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    Pragma: "no-cache",
+    "Cache-Control": "no-cache",
+};
+// ------------------------------------------------------
+// Normal Catalog Posts
+// ------------------------------------------------------
+function getPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ filter, page = 1, signal, providerContext, }) {
+        return fetchPosts({ filter, page, query: "", signal, providerContext });
+    });
+}
+// ------------------------------------------------------
+// Search Posts
+// ------------------------------------------------------
+function getSearchPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ searchQuery, page = 1, signal, providerContext, }) {
+        return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext });
+    });
+}
+// ------------------------------------------------------
+// CORE FUNCTION (FIXED URL CONSTRUCTION)
+// ------------------------------------------------------
+function fetchPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ filter, query, page = 1, signal, providerContext, }) {
+        try {
+            const baseUrl = "https://anihub.in";
+            let url;
+            // --- Build URL (FIXED SEARCH URL) ---
+            if (query && query.trim()) {
+                // ✅ FIX: Use /search.php?search=... based on HTML form action
+                // Assuming search results don't use the standard /page/X structure for pagination
+                url = `${baseUrl}/search.php?search=${encodeURIComponent(query)}`;
+            }
+            else if (filter) {
+                url = filter.startsWith("/")
+                    ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
+                    : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+            }
+            else {
+                url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
+            }
+            // --- End Build URL ---
+            const { axios, cheerio } = providerContext;
+            const res = yield axios.get(url, { headers: defaultHeaders, signal });
+            const $ = cheerio.load(res.data || "");
+            const resolveUrl = (href) => (href === null || href === void 0 ? void 0 : href.startsWith("http")) ? href : new URL(href, baseUrl).href;
+            const seen = new Set();
+            const catalog = [];
+            // --------------------------------------------------------------------------
+            // ⭐ Selectors combine various post structures on the site
+            // --------------------------------------------------------------------------
+            const POST_SELECTORS = [
+                ".anime-blog", // Recently Updated section
+                ".banner-block", // Homepage slider
+                "li.post", // General catalog posts
+                ".swiper-slide li",
+                ".latest-movies-series-swiper-slide li",
+                "ul.post-lst li", // Search results list (often used on /search.php)
+            ].join(",");
+            $(POST_SELECTORS).each((_, el) => {
+                var _a, _b, _c;
+                const postElement = $(el);
+                // --- Logic for .anime-blog structure (Recently Updated) ---
+                if (postElement.hasClass('anime-blog')) {
+                    // Link can be inside .action-overlay or the final <a> tag
+                    let link = postElement.find(".action-overlay a[href]").attr("href") || postElement.find("> a[href]").attr("href") || "";
+                    if (!link)
+                        return;
+                    link = resolveUrl(link);
+                    if (seen.has(link))
+                        return;
+                    // Title is inside the final <p> tag or the img alt
+                    let title = postElement.find("> a p").text().trim() || ((_a = postElement.find("img").attr("alt")) === null || _a === void 0 ? void 0 : _a.trim()) || "";
+                    if (!title)
+                        return;
+                    // Image is the src attribute of the img tag
+                    let img = postElement.find("img").attr("src") || "";
+                    const image = img ? resolveUrl(img) : "";
+                    seen.add(link);
+                    catalog.push({
+                        title,
+                        link,
+                        image,
+                    });
+                    return;
+                }
+                // --- Post extraction logic for the .banner-block structure ---
+                if (postElement.hasClass('banner-block')) {
+                    // Title is inside h2.title
+                    const titleElement = postElement.find(".banner-content h2.title");
+                    const title = titleElement.text().trim() || ((_b = postElement.find("img").attr("alt")) === null || _b === void 0 ? void 0 : _b.trim()) || "";
+                    if (!title)
+                        return;
+                    // Link is inside a.play-butn
+                    let link = postElement.find("a.play-butn").attr("href") || "";
+                    if (!link)
+                        return;
+                    link = resolveUrl(link);
+                    if (seen.has(link))
+                        return;
+                    // Image is inside the col-lg-5 div (the image src) or the background URL
+                    let img = postElement.find("img").attr("src") || "";
+                    // Fallback to background-image URL if needed
+                    if (!img) {
+                        const styleAttr = postElement.attr('style');
+                        const match = styleAttr ? styleAttr.match(/url\(([^)]+)\)/i) : null;
+                        if (match && match[1]) {
+                            img = match[1].replace(/['"]/g, '').trim();
+                        }
+                    }
+                    const image = img ? resolveUrl(img) : "";
+                    seen.add(link);
+                    catalog.push({
+                        title,
+                        link,
+                        image,
+                    });
+                    return;
+                }
+                // --- Post extraction logic for non-banner/non-anime-blog elements (li.post, etc.) ---
+                if (postElement.is('li.post') || postElement.is('ul.post-lst li')) {
+                    // get link
+                    let link = postElement.find("a[href]").first().attr("href") || "";
+                    if (!link)
+                        return;
+                    link = resolveUrl(link);
+                    if (seen.has(link))
+                        return;
+                    // get title 
+                    let rawTitle = postElement.find("h2.entry-title").first().text().trim() ||
+                        ((_c = postElement.find("img").attr("alt")) === null || _c === void 0 ? void 0 : _c.trim()) ||
+                        "";
+                    if (!rawTitle)
+                        return;
+                    // Remove the "Image " prefix from the title text
+                    let title = rawTitle.replace(/^Image\s+/, '').trim();
+                    // get image URL
+                    let img = postElement.find("img").attr("data-src") ||
+                        postElement.find("img").attr("src") ||
+                        "";
+                    const image = img ? resolveUrl(img) : "";
+                    seen.add(link);
+                    catalog.push({
+                        title,
+                        link,
+                        image,
+                    });
+                    return;
+                }
+            });
+            return catalog.slice(0, 100);
+        }
+        catch (err) {
+            console.error("Anihub fetchPosts error:", err instanceof Error ? err.message : String(err));
+            return [];
+        }
+    });
+}

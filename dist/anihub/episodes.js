@@ -1,1 +1,65 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getEpisodes=void 0;const getEpisodes=function({url:url,providerContext:providerContext}){const{axios:axios,cheerio:cheerio,commonHeaders:commonHeaders}=providerContext;return axios.get(url,{headers:commonHeaders}).then(res=>{const $=cheerio.load(res.data),episodePages=[];if($(".episodes-container .anime-blog").each((i,el)=>{const episodePage=$(el).find(".action-overlay a[href]").attr("href");episodePage&&episodePages.push({index:i+1,link:episodePage})}),episodePages.length>0){const iframePromises=episodePages.map(ep=>axios.get(ep.link,{headers:commonHeaders}).then(epRes=>{const ep$=cheerio.load(epRes.data),iframeSrc=ep$("#responsiveIframe").attr("src")||ep$("iframe").first().attr("src");return iframeSrc?{title:`Episode ${ep.index}`,link:iframeSrc}:null}).catch(()=>null));return Promise.all(iframePromises).then(all=>all.filter(Boolean))}const iframeSrc=$("#responsiveIframe").attr("src")||$("iframe").first().attr("src");return iframeSrc?[{title:"Watch Now",link:iframeSrc}]:[]}).catch(err=>[])};exports.getEpisodes=getEpisodes;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getEpisodes = void 0;
+const getEpisodes = function ({ url, providerContext, }) {
+    const { axios, cheerio, commonHeaders } = providerContext;
+    return axios
+        .get(url, { headers: commonHeaders })
+        .then((res) => {
+        const $ = cheerio.load(res.data);
+        const episodePages = [];
+        // =====================================================
+        // ✅ CASE 1: SERIES (EPISODES LIST)
+        // =====================================================
+        $(".episodes-container .anime-blog").each((i, el) => {
+            const card = $(el);
+            const episodePage = card.find(".action-overlay a[href]").attr("href");
+            if (episodePage) {
+                episodePages.push({
+                    index: i + 1,
+                    link: episodePage,
+                });
+            }
+        });
+        if (episodePages.length > 0) {
+            const iframePromises = episodePages.map((ep) => {
+                return axios
+                    .get(ep.link, { headers: commonHeaders })
+                    .then((epRes) => {
+                    const ep$ = cheerio.load(epRes.data);
+                    const iframeSrc = ep$("#responsiveIframe").attr("src") ||
+                        ep$("iframe").first().attr("src");
+                    if (iframeSrc) {
+                        return {
+                            title: `Episode ${ep.index}`,
+                            link: iframeSrc,
+                        };
+                    }
+                    return null;
+                })
+                    .catch(() => null);
+            });
+            return Promise.all(iframePromises).then((all) => all.filter(Boolean));
+        }
+        // =====================================================
+        // ✅ CASE 2: MOVIE (DIRECT IFRAME)
+        // =====================================================
+        const iframeSrc = $("#responsiveIframe").attr("src") ||
+            $("iframe").first().attr("src");
+        if (iframeSrc) {
+            return [
+                {
+                    title: "Watch Now",
+                    link: iframeSrc,
+                },
+            ];
+        }
+        console.log("No episodes or movie iframe found:", url);
+        return [];
+    })
+        .catch((err) => {
+        console.log("getEpisodes error:", err);
+        return [];
+    });
+};
+exports.getEpisodes = getEpisodes;

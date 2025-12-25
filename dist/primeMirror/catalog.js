@@ -1,1 +1,22 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.genres=exports.catalog=void 0,exports.catalog=[{title:"Latest",filter:""},{title:"Bhojpuri",filter:"page-cat/11/Bhojpuri-Movies.html"},{title:"Panjabi",filter:"page-cat/3/Punjabi-Movies.html"},{title:"Animation",filter:"page-cat/6/Animation-Movies.html"}],exports.genres=[];
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.genres = exports.catalog = void 0;
+exports.catalog = [
+    {
+        title: "Latest",
+        filter: "",
+    },
+    {
+        title: "Bhojpuri",
+        filter: "page-cat/11/Bhojpuri-Movies.html",
+    },
+    {
+        title: "Panjabi",
+        filter: "page-cat/3/Punjabi-Movies.html",
+    },
+    {
+        title: "Animation",
+        filter: "page-cat/6/Animation-Movies.html",
+    },
+];
+exports.genres = [];

@@ -1,1 +1,96 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getPosts=getPosts,exports.getSearchPosts=getSearchPosts;const defaultHeaders={Referer:"https://www.google.com","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",Accept:"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Language":"en-US,en;q=0.9",Pragma:"no-cache","Cache-Control":"no-cache"};async function getPosts({filter:filter,page:page=1,signal:signal,providerContext:providerContext}){return fetchPosts({filter:filter,page:page,query:"",signal:signal,providerContext:providerContext})}async function getSearchPosts({searchQuery:searchQuery,page:page=1,signal:signal,providerContext:providerContext}){return fetchPosts({filter:"",page:page,query:searchQuery,signal:signal,providerContext:providerContext})}async function fetchPosts({filter:filter,query:query,page:page=1,signal:signal,providerContext:providerContext}){try{const baseUrl="https://moviesnation.courses";let url;url=query&&query.trim()?`${baseUrl}/?s=${encodeURIComponent(query)}${page>1?`&paged=${page}`:""}`:filter?filter.startsWith("/")?`${baseUrl}${filter.replace(/\/$/,"")}${page>1?`/page/${page}`:""}`:`${baseUrl}/${filter}${page>1?`/page/${page}`:""}`:`${baseUrl}${page>1?`/page/${page}`:""}`;const{axios:axios,cheerio:cheerio}=providerContext,res=await axios.get(url,{headers:defaultHeaders,signal:signal}),$=cheerio.load(res.data||""),resolveUrl=href=>(null==href?void 0:href.startsWith("http"))?href:new URL(href,baseUrl).href,seen=new Set,catalog=[];return $("article.post-item, .post, .movie-item, .pstr_box").each((_,el)=>{var _a;const card=$(el);let link=card.find("a[href]").first().attr("href")||"";if(!link)return;if(link=resolveUrl(link),seen.has(link))return;let title=card.find("h3.entry-title a, h2 a, a[title]").first().text().trim()||(null===(_a=card.find("a[title]").first().attr("title"))||void 0===_a?void 0:_a.trim())||card.text().trim();if(title=title.replace(/\[.*?\]/g,"").replace(/\(.+?\)/g,"").replace(/\s{2,}/g," ").trim(),!title)return;const img=card.find("img").first().attr("src")||card.find("img").first().attr("data-src")||card.find("img").first().attr("data-original")||"",image=img?resolveUrl(img):"";seen.add(link),catalog.push({title:title,link:link,image:image})}),catalog.slice(0,100)}catch(err){return[]}}
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getPosts = getPosts;
+exports.getSearchPosts = getSearchPosts;
+const defaultHeaders = {
+    Referer: "https://www.google.com",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    Pragma: "no-cache",
+    "Cache-Control": "no-cache",
+};
+// --- Normal catalog posts ---
+function getPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ filter, page = 1, signal, providerContext, }) {
+        return fetchPosts({ filter, page, query: "", signal, providerContext });
+    });
+}
+// --- Search posts ---
+function getSearchPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ searchQuery, page = 1, signal, providerContext, }) {
+        return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext });
+    });
+}
+// --- Core function ---
+function fetchPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ filter, query, page = 1, signal, providerContext, }) {
+        try {
+            const baseUrl = "https://moviesnation.surf";
+            let url;
+            if (query && query.trim()) {
+                const params = new URLSearchParams();
+                params.append("s", query.trim());
+                if (page > 1)
+                    params.append("paged", page.toString());
+                url = `${baseUrl}/?${params.toString()}`;
+            }
+            else if (filter) {
+                url = filter.startsWith("/")
+                    ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
+                    : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+            }
+            else {
+                url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
+            }
+            const { axios, cheerio } = providerContext;
+            const res = yield axios.get(url, { headers: defaultHeaders, signal });
+            const $ = cheerio.load(res.data || "");
+            const resolveUrl = (href) => (href === null || href === void 0 ? void 0 : href.startsWith("http")) ? href : new URL(href, baseUrl).href;
+            const seen = new Set();
+            const catalog = [];
+            // ✅ MoviesNation specific selectors
+            $(".blog-wrapper .post-item").each((_, el) => {
+                var _a, _b;
+                const card = $(el);
+                let link = card.find("h3.entry-title a").attr("href") || "";
+                if (!link)
+                    return;
+                link = resolveUrl(link);
+                if (seen.has(link))
+                    return;
+                // Title
+                let title = card.find("h3.entry-title a").text().trim() ||
+                    ((_a = card.find("a[title]").attr("title")) === null || _a === void 0 ? void 0 : _a.trim()) ||
+                    "";
+                // ✅ Remove only "Download" prefix if present
+                title = title.replace(/^Download\s*/i, "").trim();
+                if (!title)
+                    return;
+                // Image
+                let img = card.find("img").attr("src") ||
+                    card.find("img").attr("data-src") ||
+                    ((_b = card.find("img").attr("srcset")) === null || _b === void 0 ? void 0 : _b.split(" ")[0]) ||
+                    "";
+                const image = img ? resolveUrl(img) : "";
+                seen.add(link);
+                catalog.push({ title, link, image });
+            });
+            return catalog.slice(0, 100);
+        }
+        catch (err) {
+            console.error("fetchPosts error:", err instanceof Error ? err.message : String(err));
+            return [];
+        }
+    });
+}

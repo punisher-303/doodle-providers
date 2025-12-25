@@ -1,1 +1,57 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getStream=getStream;const headers={Accept:"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8","Cache-Control":"no-store","Accept-Language":"en-US,en;q=0.9",DNT:"1","sec-ch-ua":'"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',"sec-ch-ua-mobile":"?0","sec-ch-ua-platform":'"Windows"',"Sec-Fetch-Dest":"document","Sec-Fetch-Mode":"navigate","Sec-Fetch-Site":"none","Sec-Fetch-User":"?1","Upgrade-Insecure-Requests":"1","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0"};async function getStream({link:link,type:type,signal:signal,providerContext:providerContext}){const{axios:axios,cheerio:cheerio}=providerContext;try{const streamLinks=[],res=await axios.get(link,{headers:headers,signal:signal}),$=cheerio.load(res.data);let zipzap="";if($("a.download-button").each((_,el)=>{var _a;const href=null===(_a=$(el).attr("href"))||void 0===_a?void 0:_a.trim(),text=$(el).text().trim().toLowerCase();href&&text.includes("zip-zap")&&(zipzap=href)}),!zipzap)return[];const fileName=new URL(zipzap).searchParams.get("file");if(!fileName)return[];const workerLink="https://w1.zipzap.lol/download99.php?file="+encodeURIComponent(fileName)+"&dl=worker";streamLinks.push({server:"ZIP-ZAP Worker",link:workerLink,type:"mkv"});const r2Link="https://w1.zipzap.lol/download99.php?file="+encodeURIComponent(fileName)+"&dl=r2";return streamLinks.push({server:"ZIP-ZAP Fast R2",link:r2Link,type:"mkv"}),streamLinks}catch(error){return[]}}
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getStream = getStream;
+const headers = {
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Cache-Control": "no-store",
+    "Accept-Language": "en-US,en;q=0.9",
+    DNT: "1",
+    "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+};
+function getStream(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ link, type, signal, providerContext, }) {
+        const { axios, cheerio } = providerContext;
+        try {
+            const streamLinks = [];
+            // Fetch the page HTML
+            const res = yield axios.get(link, { headers, signal });
+            const $ = cheerio.load(res.data);
+            // --- Scrape all <a class="download-button"> links
+            $("a.download-button").each((_, el) => {
+                var _a;
+                const btn = $(el);
+                const href = (_a = btn.attr("href")) === null || _a === void 0 ? void 0 : _a.trim();
+                const serverName = btn.text().trim() || "Unknown Server";
+                if (href) {
+                    streamLinks.push({
+                        server: serverName,
+                        link: href,
+                        type: "mkv", // Boss, mostly KMMOVIES MKV hota hai
+                    });
+                }
+            });
+            return streamLinks;
+        }
+        catch (error) {
+            console.log("getStream error: ", error.message);
+            return [];
+        }
+    });
+}

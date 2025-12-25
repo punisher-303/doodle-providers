@@ -1,1 +1,137 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getPosts=getPosts,exports.getSearchPosts=getSearchPosts;const defaultHeaders={Referer:"https://www.google.com","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",Accept:"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Language":"en-US,en;q=0.9",Pragma:"no-cache","Cache-Control":"no-cache"};function getPosts({filter:filter,page:page=1,signal:signal,providerContext:providerContext}){return fetchPosts({filter:filter,page:page,signal:signal,providerContext:providerContext})}function getSearchPosts({searchQuery:searchQuery,page:page=1,signal:signal,providerContext:providerContext}){return fetchPosts({query:searchQuery,page:page,signal:signal,providerContext:providerContext})}function fetchPosts({filter:filter,query:query,page:page=1,signal:signal,providerContext:providerContext}){const baseUrl="https://myflixbd.to";let url;if(query&&query.trim()){const params=new URLSearchParams;params.set("s",query.trim()),page>1&&params.set("paged",String(page)),url=`${baseUrl}/?${params.toString()}`}else url=filter?filter.startsWith("/")?`${baseUrl}${filter}${page>1?`/page/${page}`:""}`:`${baseUrl}/${filter}${page>1?`/page/${page}`:""}`:`${baseUrl}${page>1?`/page/${page}`:""}`;const{axios:axios,cheerio:cheerio}=providerContext;return axios.get((url=>"https://api.allorigins.win/raw?url="+encodeURIComponent(url))(url),{headers:defaultHeaders,signal:signal}).then(res=>{const $=cheerio.load(res.data||""),resolveUrl=href=>(null==href?void 0:href.startsWith("http"))?href:new URL(href,baseUrl).href,posts=[],seen=new Set;return $("article.item.movies, .result-item article").each((_,el)=>{var _a;const card=$(el);let link=card.find(".poster a").attr("href")||card.find(".thumbnail a").attr("href")||card.find(".details .title a").attr("href")||card.find(".data h3 a").attr("href")||"";if(link=resolveUrl(link),!link||seen.has(link))return;let title=card.find(".data h3 a").text().trim()||card.find(".details .title a").text().trim()||(null===(_a=card.find("img").attr("alt"))||void 0===_a?void 0:_a.trim())||"";if(!title)return;const imgEl=card.find(".poster img").first().length?card.find(".poster img").first():card.find(".thumbnail img").first();let image=imgEl.attr("src")||imgEl.attr("data-src")||imgEl.attr("data-lazy-src")||"";image=image?resolveUrl(image):"",image&&(seen.add(link),posts.push({title:title,link:link,image:image}))}),posts.slice(0,100)}).catch(err=>[])}
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getPosts = getPosts;
+exports.getSearchPosts = getSearchPosts;
+const defaultHeaders = {
+    Referer: "https://www.google.com",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    Pragma: "no-cache",
+    "Cache-Control": "no-cache",
+};
+// --- Normal catalog posts ---
+function getPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ filter, page = 1, signal, providerContext, }) {
+        return fetchPosts({ filter, page, query: "", signal, providerContext });
+    });
+}
+// --- Search posts ---
+function getSearchPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ searchQuery, page = 1, signal, providerContext, }) {
+        return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext });
+    });
+}
+// --- Core function ---
+function fetchPosts(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ filter, query, page = 1, signal, providerContext, }) {
+        try {
+            const baseUrl = "https://movietp.com";
+            let url;
+            // ✅ Search URL construction: Use 's' parameter for query and 'paged' for pagination.
+            if (query && query.trim()) {
+                const params = new URLSearchParams();
+                params.append("s", query.trim());
+                if (page > 1)
+                    params.append("paged", page.toString());
+                url = `${baseUrl}/?${params.toString()}`;
+            }
+            else if (filter) {
+                url = filter.startsWith("/")
+                    ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
+                    : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+            }
+            else {
+                url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
+            }
+            const { axios, cheerio } = providerContext;
+            const res = yield axios.get(url, { headers: defaultHeaders, signal });
+            const $ = cheerio.load(res.data || "");
+            const resolveUrl = (href) => (href === null || href === void 0 ? void 0 : href.startsWith("http")) ? href : new URL(href, baseUrl).href;
+            // Helper function to extract the largest URL from a srcset string
+            const getLargestSrcFromSrcset = (srcset) => {
+                if (!srcset)
+                    return null;
+                // Split the srcset string into individual URL/width pairs
+                const sources = srcset.split(',').map(s => s.trim().split(/\s+/));
+                let largestSrc = null;
+                let largestWidth = 0;
+                // Find the URL associated with the largest width (or the last URL if widths aren't clear)
+                for (const [url, widthStr] of sources) {
+                    const width = parseInt(widthStr) || 0;
+                    if (width >= largestWidth) {
+                        largestWidth = width;
+                        largestSrc = url;
+                    }
+                    else if (!largestSrc) {
+                        // If no width is specified, just take the first URL as a fallback
+                        largestSrc = url;
+                    }
+                }
+                return largestSrc;
+            };
+            const seen = new Set();
+            const catalog = [];
+            // 🚀 FIX: Use an OR selector to target posts on both the homepage/catalog (article.item.movies)
+            // and the search results page (.result-item article).
+            const postSelector = "article.item.movies, .result-item article";
+            $(postSelector).each((_, el) => {
+                var _a;
+                const card = $(el);
+                // --- Link (Check both title link area and poster area) ---
+                const titleLinkEl = card.find(".details .title a, .data h3 a");
+                const posterLinkEl = card.find(".thumbnail a, .poster a");
+                let link = titleLinkEl.attr("href") || posterLinkEl.attr("href") || "";
+                link = resolveUrl(link);
+                if (!link || seen.has(link))
+                    return;
+                // --- Title ---
+                let title = titleLinkEl.text().trim();
+                // Fallback for title: use img alt attribute if the text is empty
+                if (!title) {
+                    title = ((_a = card.find("img").attr("alt")) === null || _a === void 0 ? void 0 : _a.trim()) || "";
+                }
+                if (!title)
+                    return;
+                // --- Image (Robust Extraction Logic) ---
+                const imgEl = card.find("img").first(); // Target the image within the card
+                let img = "";
+                // 1. Try srcset (standard or lazy-loaded)
+                const srcset = imgEl.attr("srcset") || imgEl.attr("data-lazy-srcset");
+                const largestSrc = getLargestSrcFromSrcset(srcset);
+                if (largestSrc) {
+                    img = largestSrc;
+                }
+                // 2. Fallback to standard/lazy src attributes
+                if (!img) {
+                    img = imgEl.attr("src") || imgEl.attr("data-src") || imgEl.attr("data-lazy-src") || "";
+                }
+                // 3. Last resort: Check poster parent for data attributes
+                if (!img || img.includes("placeholder") || img.includes("no-thumbnail")) {
+                    img = card.find(".poster").attr("data-img") || img;
+                }
+                const image = img ? resolveUrl(img) : "";
+                // Ensure we discard placeholder or no-thumbnail images
+                if (!image || image.includes("placeholder") || image.includes("no-thumbnail"))
+                    return;
+                seen.add(link);
+                catalog.push({ title, link, image });
+            });
+            return catalog.slice(0, 100);
+        }
+        catch (err) {
+            console.error("fetchPosts error:", err instanceof Error ? err.message : String(err));
+            return [];
+        }
+    });
+}

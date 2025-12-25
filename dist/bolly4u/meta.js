@@ -1,1 +1,106 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getMeta=void 0;const headers={Referer:"https://google.com","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"},getMeta=async function({link:link,providerContext:providerContext}){var _a,_b;const{axios:axios,cheerio:cheerio}=providerContext;try{const res=await axios.get(link,{headers:headers}),$=cheerio.load(res.data),title=$(".sheader h1").first().text().trim()||(null===(_a=$("meta[property='og:title']").attr("content"))||void 0===_a?void 0:_a.trim())||"";let image=$(".sheader .poster img").attr("src")||$(".sheader .poster img").attr("data-src")||$("meta[property='og:image']").attr("content")||"";image&&!image.startsWith("http")&&(image=new URL(image,link).href);const tagline=$(".sheader .tagline").text().trim(),date=$(".sheader .date").text().trim(),country=$(".sheader .country").text().trim(),runtime=$(".sheader .runtime").text().trim(),contentRating=$(".sheader .rated").text().trim(),rating=$(".starstruck-rating span[itemprop='ratingValue']").text().trim()||"";let synopsis="";$("#info .wp-content p").each((_,el)=>{const txt=$(el).text().trim();if(txt&&txt.length>30&&!/watch online|download|share|support/i.test(txt))return synopsis=txt,!1}),synopsis||(synopsis=(null===(_b=$("meta[name='description']").attr("content"))||void 0===_b?void 0:_b.trim())||"No synopsis available.");const tags=[];$(".sgeneros a").each((_,el)=>{const txt=$(el).text().trim();txt&&tags.push(txt)});const links=[];$("h3 a, .movie_button a, .movie_button_container a, .download-links a, .dl-box a").each((_,el)=>{let href=($(el).attr("href")||"").trim();if(!href)return;href.startsWith("http")||(href=new URL(href,link).href);let btnText=($(el).text()||"").trim();btnText=btnText.replace(/[\n\r]+/g," ").replace(/\s{2,}/g," ").trim();const match=btnText.match(/Episode\s*\d+|480p|720p|1080p/i);if(!match)return;btnText=match[0],btnText=`${btnText} – ${title}`;let quality="AUTO";/1080p/i.test(btnText)?quality="1080p":/720p/i.test(btnText)?quality="720p":/480p/i.test(btnText)&&(quality="480p"),links.push({title:btnText,directLinks:[{link:href,title:btnText,quality:quality,type:"movie"}],episodesLink:href})});return{title:title,synopsis:synopsis,image:image,imdbId:"",type:"movie",tags:tags,cast:[],rating:rating,linkList:links,extraInfo:{tagline:tagline,date:date,country:country,runtime:runtime,contentRating:contentRating}}}catch(err){return{title:"",synopsis:"",image:"",imdbId:"",type:"movie",tags:[],cast:[],rating:"",linkList:[],extraInfo:{}}}};exports.getMeta=getMeta;
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getMeta = void 0;
+const getMeta = function (_a) {
+    return __awaiter(this, arguments, void 0, function* ({ link, providerContext, }) {
+        try {
+            const { axios, cheerio, getBaseUrl } = providerContext;
+            const baseUrl = yield getBaseUrl("moviezwap");
+            const url = link.startsWith("http") ? link : `${baseUrl}${link}`;
+            const res = yield axios.get(url);
+            const data = res.data;
+            const $ = cheerio.load(data);
+            // 1. Poster image find  image with width 260
+            let image = $('img[width="260"]').attr("src") || "";
+            if (image && !image.startsWith("http")) {
+                image = baseUrl + image;
+            }
+            const tags = $("font[color='steelblue']")
+                .map((i, el) => $(el).text().trim())
+                .get()
+                .slice(0, 2);
+            // 2. Title
+            const title = $("title").text().replace(" - MoviezWap", "").trim() || "";
+            // 3. Info table
+            let synopsis = "";
+            let imdbId = "";
+            let type = "movie";
+            let infoRows = [];
+            $("td:contains('Movie Information')")
+                .parent()
+                .nextAll("tr")
+                .each((i, el) => {
+                const tds = $(el).find("td");
+                if (tds.length === 2) {
+                    const key = tds.eq(0).text().trim();
+                    const value = tds.eq(1).text().trim();
+                    infoRows.push(`${key}: ${value}`);
+                    if (key.toLowerCase().includes("plot"))
+                        synopsis = value;
+                    if (key.toLowerCase().includes("imdb"))
+                        imdbId = value;
+                }
+            });
+            if (!synopsis) {
+                // fallback: try to find a <p> with plot
+                synopsis = $("p:contains('plot')").text().trim();
+            }
+            // 4. Download links (multiple qualities)
+            const links = [];
+            $('a[href*="download.php?file="], a[href*="dwload.php?file="]').each((i, el) => {
+                var _a;
+                const downloadPage = ((_a = $(el).attr("href")) === null || _a === void 0 ? void 0 : _a.replace("dwload.php", "download.php")) || "";
+                const text = $(el).text().trim();
+                if (downloadPage && /\d+p/i.test(text)) {
+                    // Only add links with quality in text
+                    links.push({
+                        title: text,
+                        directLinks: [{ title: "Movie", link: baseUrl + downloadPage }],
+                    });
+                }
+            });
+            $("img[src*='/images/play.png']").each((i, el) => {
+                const downloadPage = $(el).siblings("a").attr("href");
+                const text = $(el).siblings("a").text().trim();
+                console.log("Found link:🔥🔥", text, downloadPage);
+                if (downloadPage && text) {
+                    links.push({
+                        title: text,
+                        episodesLink: baseUrl + downloadPage,
+                    });
+                }
+            });
+            return {
+                title,
+                synopsis,
+                image,
+                imdbId,
+                tags,
+                type,
+                linkList: links,
+                //info: infoRows.join("\n"),
+            };
+        }
+        catch (err) {
+            console.error(err);
+            return {
+                title: "",
+                synopsis: "",
+                image: "",
+                imdbId: "",
+                type: "movie",
+                linkList: [],
+            };
+        }
+    });
+};
+exports.getMeta = getMeta;

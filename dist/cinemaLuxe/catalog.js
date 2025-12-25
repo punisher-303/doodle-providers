@@ -1,1 +1,18 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.genres=exports.catalog=void 0,exports.catalog=[{title:"Trending",filter:""},{title:"Animation",filter:"category/animation/"},{title:"Apple-TV",filter:"category/netflix/"}],exports.genres=[];
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.genres = exports.catalog = void 0;
+exports.catalog = [
+    {
+        title: "Trending",
+        filter: "",
+    },
+    {
+        title: "Animation",
+        filter: "category/animation/",
+    },
+    {
+        title: "Apple-TV",
+        filter: "category/netflix/",
+    },
+];
+exports.genres = [];

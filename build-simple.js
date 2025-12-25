@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
-const { minify } = require("terser");
+// const { minify } = require("terser");
 
 // Build configuration
 const PROVIDERS_DIR = "./providers";
@@ -73,7 +73,7 @@ class ProviderBuilder {
 
     try {
       // Use TypeScript to compile all files according to tsconfig.json
-      execSync("npx tsc", {
+      execSync("node ./node_modules/typescript/lib/tsc.js", {
         stdio: "pipe",
         encoding: "utf8",
       });
@@ -98,13 +98,13 @@ class ProviderBuilder {
   async minifyFiles() {
     const keepConsole = process.env.KEEP_CONSOLE === "true";
     log.build(
-      `Minifying JavaScript files... ${
-        keepConsole ? "(keeping console logs)" : "(removing console logs)"
+      `Minifying JavaScript files... ${keepConsole ? "(keeping console logs)" : "(removing console logs)"
       }`
     );
 
     const minifyFile = async (filePath) => {
       try {
+        const { minify } = require("terser");
         const code = fs.readFileSync(filePath, "utf8");
         const result = await minify(code, {
           compress: {
@@ -113,11 +113,11 @@ class ProviderBuilder {
             pure_funcs: keepConsole
               ? ["console.debug"]
               : [
-                  "console.debug",
-                  "console.log",
-                  "console.info",
-                  "console.warn",
-                ],
+                "console.debug",
+                "console.log",
+                "console.info",
+                "console.warn",
+              ],
           },
           mangle: false, // Disable variable name mangling to keep original names
           format: {
@@ -174,14 +174,14 @@ class ProviderBuilder {
     const compressionRatio =
       totalSizeBefore > 0
         ? (
-            ((totalSizeBefore - totalSizeAfter) / totalSizeBefore) *
-            100
-          ).toFixed(1)
+          ((totalSizeBefore - totalSizeAfter) / totalSizeBefore) *
+          100
+        ).toFixed(1)
         : 0;
 
     log.success(
       `Minified ${minifiedCount}/${jsFiles.length} files. ` +
-        `Size reduced by ${compressionRatio}% (${totalSizeBefore} → ${totalSizeAfter} bytes)`
+      `Size reduced by ${compressionRatio}% (${totalSizeBefore} → ${totalSizeAfter} bytes)`
     );
   }
 
@@ -236,8 +236,7 @@ class ProviderBuilder {
 
     if (isWatchMode) {
       console.log(
-        `\n${colors.cyan}🔄 Auto-build triggered${
-          colors.reset
+        `\n${colors.cyan}🔄 Auto-build triggered${colors.reset
         } ${new Date().toLocaleTimeString()}`
       );
     } else {

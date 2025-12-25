@@ -1,1 +1,66 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.getMeta=void 0;const headers={Accept:"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Language":"en-US,en;q=0.9","Cache-Control":"no-store","User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"},getMeta=function({link:link,providerContext:providerContext}){const{axios:axios,cheerio:cheerio}=providerContext,empty={title:"",synopsis:"",image:"",imdbId:"",type:"series",linkList:[]};return axios.get(link,{headers:headers}).then(epRes=>{const animePage=cheerio.load(epRes.data||"")('span[itemprop="itemListElement"] a[href*="/anime/"]').first().attr("href")||"";if(!animePage)throw new Error("Anime page not found");return axios.get(animePage,{headers:headers}).then(animeRes=>{const $=cheerio.load(animeRes.data||""),title=$("h1.entry-title").first().text().trim();let image=$(".thumbook img").first().attr("src")||"";image.startsWith("//")&&(image="https:"+image);const info={title:title,synopsis:$(".desc").first().text().trim(),image:image,imdbId:"",type:"series",linkList:[]};$(".epcurlast").closest("a").attr("href"),$(".epcurlast").text().trim();return info.linkList.push({title:"All Episodes",quality:"Ongoing",episodesLink:animePage,directLinks:[]}),info})}).catch(err=>empty)};exports.getMeta=getMeta;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getMeta = void 0;
+const headers = {
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Cache-Control": "no-store",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+};
+const getMeta = function ({ link, providerContext, }) {
+    const { axios, cheerio } = providerContext;
+    const empty = {
+        title: "",
+        synopsis: "",
+        image: "",
+        imdbId: "",
+        type: "series",
+        linkList: [],
+    };
+    // ---------------- LOAD EPISODE PAGE ----------------
+    return axios
+        .get(link, { headers })
+        .then((epRes) => {
+        const $ep = cheerio.load(epRes.data || "");
+        // find anime page from breadcrumb
+        const animePage = $ep('span[itemprop="itemListElement"] a[href*="/anime/"]')
+            .first()
+            .attr("href") || "";
+        if (!animePage) {
+            throw new Error("Anime page not found");
+        }
+        return axios.get(animePage, { headers }).then((animeRes) => {
+            const $ = cheerio.load(animeRes.data || "");
+            // ---------------- META DATA ----------------
+            const title = $("h1.entry-title").first().text().trim();
+            let image = $(".thumbook img").first().attr("src") || "";
+            if (image.startsWith("//"))
+                image = "https:" + image;
+            const synopsis = $(".desc").first().text().trim();
+            const info = {
+                title,
+                synopsis,
+                image,
+                imdbId: "",
+                type: "series",
+                linkList: [],
+            };
+            // ---------------- LATEST EPISODE ----------------
+            const latestEpLink = $(".epcurlast").closest("a").attr("href") || "";
+            const latestEpText = $(".epcurlast").text().trim();
+            // ---------------- ALL EPISODES ----------------
+            info.linkList.push({
+                title: "All Episodes",
+                quality: "Ongoing",
+                episodesLink: animePage,
+                directLinks: [],
+            });
+            return info;
+        });
+    })
+        .catch((err) => {
+        console.log("animekhor meta error:", (err === null || err === void 0 ? void 0 : err.message) || err);
+        return empty;
+    });
+};
+exports.getMeta = getMeta;

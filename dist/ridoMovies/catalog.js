@@ -1,1 +1,14 @@
-"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.genres=exports.catalog=void 0,exports.catalog=[{title:"Popular Movies",filter:""},{title:"Featured Movies",filter:"genre/animation/"}],exports.genres=[];
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.genres = exports.catalog = void 0;
+exports.catalog = [
+    {
+        title: "Popular Movies",
+        filter: "",
+    },
+    {
+        title: "Featured Movies",
+        filter: "genre/animation/",
+    },
+];
+exports.genres = [];
