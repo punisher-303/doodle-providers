@@ -63,12 +63,26 @@ export async function getStream({
 
                             // console.log("Resolved", url, "to", finalUrl);
 
+                            // DEBUG: Push the resolved URL to the UI to verify redirect
+                            // streams.push({
+                            //    server: `DBG: ${finalUrl.substring(0, 40)}...`,
+                            //    link: finalUrl,
+                            //    type: "mkv"
+                            // });
+
                             if (finalUrl.includes("gdflix") || finalUrl.includes("drivebot")) {
-                                const extracted = await extractors.gdFlixExtracter(finalUrl, signal);
-                                extracted.forEach(s => {
-                                    s.server = `Mlfbd ${resolution} - ${s.server}`;
-                                    streams.push(s);
-                                });
+                                if (!extractors.gdFlixExtracter) {
+                                    streams.push({ server: "ERR: No gdFlixExtracter", link: finalUrl, type: "error" });
+                                } else {
+                                    const extracted = await extractors.gdFlixExtracter(finalUrl, signal);
+                                    if (!extracted || extracted.length === 0) {
+                                        streams.push({ server: "ERR: Gdflix empty", link: finalUrl, type: "error" });
+                                    }
+                                    extracted.forEach(s => {
+                                        s.server = `Mlfbd ${resolution} - ${s.server}`;
+                                        streams.push(s);
+                                    });
+                                }
                             } else {
                                 // Fallback: it might be a direct link or handled by generic extractors
                                 streams.push({
@@ -78,7 +92,7 @@ export async function getStream({
                                 });
                             }
                         } catch (e: any) {
-                            // console.error("Error resolving mlfbd link", url, e.message);
+                            streams.push({ server: `ERR: ${e.message}`, link: url, type: "error" });
                         }
                     })());
                 }
@@ -93,9 +107,29 @@ export async function getStream({
         // It requires more logic to resolve the iframe source (often ajax).
         // Let's stick to the download links for now as they are explicit in the task (add one provider).
 
+        if (streams.length === 0) {
+            streams.push({
+                server: "DBG: No streams found",
+                link: "error",
+                type: "error"
+            });
+            // Try to provide more context
+            const downloadSection = $("#download").length;
+            const tableSection = $(".links_table").length;
+            streams.push({
+                server: `DBG: Sel: #dl=${downloadSection} .tbl=${tableSection}`,
+                link: "error",
+                type: "error"
+            });
+        }
+
         return streams;
-    } catch (err) {
+    } catch (err: any) {
         console.error("Mlfbd getStream error:", err);
-        return [];
+        return [{
+            server: `ERR: TopLevel ${err.message}`,
+            link: "error",
+            type: "error"
+        }];
     }
 }

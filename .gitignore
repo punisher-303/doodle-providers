@@ -6,4 +6,5 @@ build/
 debug-mlfbd.js
 debug-full-mlfbd.js
 debug-inspect-search.js
+debug-inspect-movie.js
 build-mlfbd-only.js
