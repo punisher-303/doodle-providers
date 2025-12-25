@@ -54,7 +54,13 @@ export async function getStream({
                                 validateStatus: (status) => status < 400 // Accept 3xx
                             });
 
-                            const finalUrl = linkRes.request.res.responseUrl || url;
+                            // Cross-platform URL detection
+                            const finalUrl = linkRes.request?.responseURL || // Browser/Axios adapter
+                                linkRes.request?.res?.responseUrl || // Node
+                                linkRes.headers['location'] ||
+                                linkRes.config.url || // Fallback to requested URL
+                                url;
+
                             // console.log("Resolved", url, "to", finalUrl);
 
                             if (finalUrl.includes("gdflix") || finalUrl.includes("drivebot")) {
