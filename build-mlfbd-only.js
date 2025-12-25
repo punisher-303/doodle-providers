@@ -71,9 +71,11 @@ async function copyAndMinify(srcDir, destDir) {
 
         const code = fs.readFileSync(srcFile, "utf8");
         try {
-            const result = await minify(code, { mangle: false }); // No mangle to be safe
-            fs.writeFileSync(destFile, result.code || code);
-            console.log(`   Minified ${file}`);
+            // const result = await minify(code, { mangle: false }); // No mangle to be safe
+            // fs.writeFileSync(destFile, result.code || code);
+            // console.log(`   Minified ${file}`);
+            fs.copyFileSync(srcFile, destFile);
+            console.log(`   Copied ${file} (No Minify)`);
         } catch (e) {
             console.warn(`   Failed to minify ${file}, using raw.`, e.message);
             fs.copyFileSync(srcFile, destFile);
