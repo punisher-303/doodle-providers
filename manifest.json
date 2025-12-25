@@ -182,7 +182,7 @@
   {
     "display_name": "HdHub4u",
     "value": "hdhub4u",
-    "version": "1.8",
+    "version": "1.9",
     "icon": "https://hdhub4u.lt/wp-content/uploads/2025/09/cropped-favicon-192x192.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -326,7 +326,7 @@
   {
     "display_name": "Joya9tv",
     "value": "Joya9tv",
-    "version": "1.6",
+    "version": "1.7",
     "icon": "https://joya9tv1.com/wp-content/uploads/2024/02/cropped-JAYA9-APK-512x512-1.png",
     "type": "bangla",
     "category": "movie/tvshow",
@@ -497,7 +497,7 @@
   {
     "display_name": "cinevood1",
     "value": "cinevood1",
-    "version": "1.7",
+    "version": "1.8",
     "icon": "https://1cinevood.fyi/wp-content/uploads/2020/07/favicon2.png",
     "type": "india",
     "category": "movie/tvshow",
@@ -506,7 +506,7 @@
   {
     "display_name": "7starHD",
     "value": "7starHD",
-    "version": "1.4",
+    "version": "1.5",
     "icon": "https://7starhd.info.in/wp-content/uploads/2025/10/7starhd_mm.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -672,6 +672,6 @@
     "icon": "https://mlfbd.best/wp-content/uploads/2023/11/Screenshot-2.png",
     "type": "global",
     "category": "movie/tvshow",
-    "disabled": false
+    "disabled": true
   }
 ]
