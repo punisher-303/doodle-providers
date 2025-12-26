@@ -38,7 +38,7 @@
   {
     "display_name": "Dooflix",
     "value": "dooflix",
-    "version": "2.4",
+    "version": "2.5",
     "icon": "https://dooflixapk.com/files/dooflix_favicon_hd_.webp",
     "type": "india",
     "category": "movie/tvshow",
@@ -47,7 +47,7 @@
   {
     "display_name": "RogMovies",
     "value": "luxMovies",
-    "version": "2.3",
+    "version": "2.4",
     "icon": "https://rogmovies.in/favicon.png",
     "type": "india",
     "category": "movie/tvshow",
@@ -56,7 +56,7 @@
   {
     "display_name": "MoviesDrive",
     "value": "drive",
-    "version": "2.0",
+    "version": "2.1",
     "icon": "https://moviesdrive.pics/apple-touch-icon.png",
     "type": "global",
     "category": "movie/tvshow",
