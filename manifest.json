@@ -2,7 +2,7 @@
   {
     "display_name": "DoodleMovies",
     "value": "vega",
-    "version": "3.8",
+    "version": "3.9",
     "icon": "https://vegamovies.careers/templates/vegamovies/images/v-l.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -11,7 +11,7 @@
   {
     "display_name": "CinemaLuxe",
     "value": "cinemaLuxe",
-    "version": "3.0",
+    "version": "3.1",
     "icon": "https://cinemalux.tel/wp-content/uploads/2025/03/cropped-icons8-film-reel-48-192x192.png",
     "type": "global",
     "category": "movie/tvshow",
