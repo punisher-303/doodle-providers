@@ -1,5 +1,14 @@
 [
   {
+    "display_name": "MegaOne",
+    "value": "megaone",
+    "version": "1.0",
+    "icon": "",
+    "type": "global",
+    "category": "movie/tv",
+    "disabled": false
+  },
+  {
     "display_name": "DoodleMovies",
     "value": "vega",
     "version": "3.9",
