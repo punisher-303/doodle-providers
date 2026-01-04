@@ -64,9 +64,8 @@ export function getWebstreamerStream(
 ): Promise<void> {
   if (!imdbId || imdbId === "undefined") return Promise.resolve();
 
-  const url = `https://webstreamr.hayd.uk/{"multi":"on","al":"on","de":"on","es":"on","fr":"on","hi":"on","it":"on","mx":"on","mediaFlowProxyUrl":"","mediaFlowProxyPassword":""}/stream/${type}/${imdbId}${
-    type === "series" ? `:${season}:${episode}` : ""
-  }.json`;
+  const url = `https://webstreamr.hayd.uk/{"multi":"on","al":"on","de":"on","es":"on","fr":"on","hi":"on","it":"on","mx":"on","mediaFlowProxyUrl":"","mediaFlowProxyPassword":""}/stream/${type}/${imdbId}${type === "series" ? `:${season}:${episode}` : ""
+    }.json`;
 
   console.log("Webstreamer URL: ", encodeURI(url));
 
@@ -148,11 +147,20 @@ export function getRiveStream(
         })
         .then((res: any) => {
           res.data?.data?.sources.forEach((source: any) => {
+            const quality = source?.quality || "unknown";
+            const serverName = source?.source || "Server";
+
+            // Add Premium/Lightning styling for high-quality streams
+            const isHighQuality = quality === "1080p" || quality === "4k";
+            const displayName = isHighQuality
+              ? `⚡ ${serverName} (${quality})`
+              : `${serverName} (${quality})`;
+
             Streams.push({
-              server: source?.source + "-" + source?.quality,
+              server: displayName,
               link: source?.url,
               type: source?.format === "hls" ? "m3u8" : "mp4",
-              quality: source?.quality,
+              quality: quality,
               headers: {
                 referer: baseUrl,
               },
@@ -164,7 +172,15 @@ export function getRiveStream(
         });
     });
 
-    return Promise.all(promises);
+    return Promise.all(promises).then(() => {
+      // Sort streams: 4k/1080p first, then by server name
+      Streams.sort((a, b) => {
+        const qualityOrder = { "4k": 3, "1080p": 2, "720p": 1, "480p": 0, "360p": -1, "unknown": -2 };
+        const qA = qualityOrder[a.quality as keyof typeof qualityOrder] || 0;
+        const qB = qualityOrder[b.quality as keyof typeof qualityOrder] || 0;
+        return qB - qA;
+      });
+    });
   });
 }
 
