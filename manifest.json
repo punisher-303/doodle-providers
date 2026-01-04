@@ -6,7 +6,7 @@
     "icon": "",
     "type": "global",
     "category": "movie/tv",
-    "disabled": false
+    "disabled": true
   },
   {
     "display_name": "DoodleMovies",
