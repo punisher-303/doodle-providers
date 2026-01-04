@@ -728,11 +728,92 @@
     "category": "movie/tvshow",
     "disabled": false
   },
-   {
+  {
     "display_name": "Tamilblaster",
     "value": "tamilblaster",
     "version": "1.0",
     "icon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjlqKUeCm1nWBKWGgm9Mg-Qz13Kqk8KWv3Bw&s",
+    "type": "tamil",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "Primevideo",
+    "value": "primevideo",
+    "version": "1.0",
+    "icon": "https://m.media-amazon.com/images/G/01/digital/video/DVUI/favicons/mstile-70x70.png",
+    "type": "global",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "Desny",
+    "value": "desny",
+    "version": "1.0",
+    "icon": "https://static-mh.content.disney.io/matterhorn/assets/logos/disney_logo_dark-baa807690db7.png",
+    "type": "global",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "Hotstar",
+    "value": "hotstar",
+    "version": "1.0",
+    "icon": "https://secure-media.hotstar.com/web-assets/prod/jhs_favicon.ico",
+    "type": "global",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "Mxplayer",
+    "value": "mxplayer",
+    "version": "1.0",
+    "icon": "https://dfyr469febw8d.cloudfront.net/static/desktop/images/favicon.png",
+    "type": "india",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "Topcartoon",
+    "value": "topcartoon",
+    "version": "1.0",
+    "icon": "https://www.topcartoons.tv/wp-content/uploads/logo.png",
+    "type": "global",
+    "category": "cartoon",
+    "disabled": false
+  },
+  {
+    "display_name": "Toontales",
+    "value": "toontales",
+    "version": "1.0",
+    "icon": "https://www.toontales.net/wp-content/uploads/cropped-favicon-180x180.png",
+    "type": "english",
+    "category": "cartoon",
+    "disabled": false
+  },
+  {
+    "display_name": "Toonhub",
+    "value": "toonhub",
+    "version": "1.0",
+    "icon": "https://toonhub4u.co/wp-content/uploads/2024/02/cropped-cropped-TOONHUB4U-180x180.jpg",
+    "type": "global",
+    "category": "anime",
+    "disabled": false
+  },
+  {
+    "display_name": "Donghuastream",
+    "value": "donghuastream",
+    "version": "1.0",
+    "icon": "https://i0.wp.com/donghuastream.org/wp-content/uploads/2024/02/donghuastream.png",
+    "type": "english",
+    "category": "donghua",
+    "disabled": false
+  },
+  {
+    "display_name": "moviespapa",
+    "value": "moviespapa",
+    "version": "1.0",
+    "icon": "https://moviespapa.sale/wp-content/uploads/2025/11/moviespapacom.png",
     "type": "tamil",
     "category": "movie/tvshow",
     "disabled": false
