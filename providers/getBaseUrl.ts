@@ -14,7 +14,7 @@ export const getBaseUrl = async (providerValue: string) => {
     //   baseUrl = cachedUrl;
     // } else {
     const baseUrlRes = await fetch(
-      "https://himanshu8443.github.io/providers/modflix.json"
+      "https://punisher-303.github.io/providers/modflix.json"
     );
     const baseUrlData = await baseUrlRes.json();
     baseUrl = baseUrlData[providerValue].url;
