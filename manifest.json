@@ -27,7 +27,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://vegamovieshub.baby"
+    "sourceUrl": "https://vegamovieshub.cfd"
   },
   {
     "display_name": "Netflix",
@@ -491,7 +491,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://movies4u.fans"
+    "sourceUrl": "https://movies4u.army"
   },
   {
     "display_name": "mkvcinema",
@@ -651,7 +651,7 @@
     "type": "india",
     "category": "anime",
     "disabled": false,
-    "sourceUrl": "https://watchanimeworld.in"
+    "sourceUrl": "http://watchanimeworld.net"
   },
   {
     "display_name": "Kaido",
