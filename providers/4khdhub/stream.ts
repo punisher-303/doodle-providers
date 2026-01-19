@@ -31,13 +31,17 @@ export async function getStream({
     const decodedString: any = decodeString(encryptedString);
     link = atob(decodedString?.o);
     const redirectLink = await getRedirectLinks(link, signal, headers);
+    console.log("redirectLink", redirectLink);
+    if (redirectLink.includes("hubcloud") || redirectLink.includes("/drive/")) {
+      return await hubcloudExtracter(redirectLink, signal);
+    }
     const redirectLinkRes = await axios.get(redirectLink, { headers, signal });
     const redirectLinkText = redirectLinkRes.data;
     const $ = cheerio.load(redirectLinkText);
     hubdriveLink =
       $('h3:contains("1080p")').find("a").attr("href") ||
       redirectLinkText.match(
-        /href="(https:\/\/hubcloud\.[^\/]+\/drive\/[^"]+)"/
+        /href="(https:\/\/hubcloud\.[^\/]+\/drive\/[^"]+)"/,
       )[1];
     if (hubdriveLink.includes("hubdrive")) {
       const hubdriveRes = await axios.get(hubdriveLink, { headers, signal });
@@ -52,7 +56,7 @@ export async function getStream({
   const hubcloudText = hubdriveLinkRes.data;
   const hubcloudLink =
     hubcloudText.match(
-      /<META HTTP-EQUIV="refresh" content="0; url=([^"]+)">/i
+      /<META HTTP-EQUIV="refresh" content="0; url=([^"]+)">/i,
     )?.[1] || hubdriveLink;
   try {
     return await hubcloudExtracter(hubcloudLink, signal);
@@ -77,14 +81,14 @@ const pen = function (value: string) {
       (_0x1a470e <= "Z" ? 90 : 122) >=
         (_0x1a470e = _0x1a470e.charCodeAt(0) + 13)
         ? _0x1a470e
-        : _0x1a470e - 26
+        : _0x1a470e - 26,
     );
   });
 };
 
 const abortableTimeout = (
   ms: number,
-  { signal }: { signal?: AbortSignal } = {}
+  { signal }: { signal?: AbortSignal } = {},
 ) => {
   return new Promise((resolve, reject) => {
     if (signal && signal.aborted) {
@@ -105,7 +109,7 @@ const abortableTimeout = (
 export async function getRedirectLinks(
   link: string,
   signal: AbortSignal,
-  headers: any
+  headers: any,
 ) {
   try {
     const res = await fetch(link, { headers, signal });
@@ -160,7 +164,7 @@ function rot13(str: string) {
     const isUpperCase = char <= "Z";
     const baseCharCode = isUpperCase ? 65 : 97;
     return String.fromCharCode(
-      ((charCode - baseCharCode + 13) % 26) + baseCharCode
+      ((charCode - baseCharCode + 13) % 26) + baseCharCode,
     );
   });
 }

@@ -38,9 +38,9 @@ export const getMeta = async function ({
               .replace("\n", " ");
             const link = $(element)
               .find(".episode-links")
-              .find("a:contains('HubDrive')")
+              .find("a:contains('HubCloud')")
               .attr("href");
-            console.log("title⭐", title, "link", link);
+            // console.log("title⭐", title, "link", link);
             if (title && link) {
               directLinks.push({ title, link });
             }
@@ -60,7 +60,7 @@ export const getMeta = async function ({
           .trim();
         const link = $(element)
           .find(".grid.grid-cols-2.gap-2")
-          .find("a:contains('HubDrive')")
+          .find("a:contains('HubCloud')")
           .attr("href");
         // console.log("title⭐", title, "link", link);
         if (title && link) {

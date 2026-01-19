@@ -1,19 +1,19 @@
 export const catalog = [
   {
-    title: "Popular Movies",
-    filter: "/category/new-movies-10810.html",
+    title: "Home",
+    filter: "",
   },
   {
     title: "Latest TV Shows",
-    filter: "/category/new-series-10811.html",
+    filter: "/category/series",
   },
   {
     title: "Anime",
-    filter: "/category/anime-10812.html",
+    filter: "/category/anime",
   },
   {
     title: "4K HDR",
-    filter: "/category/4k-hdr-10776.html",
+    filter: "/category/-2160p-HDR",
   },
 ];
 

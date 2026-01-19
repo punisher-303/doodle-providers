@@ -1,43 +1,36 @@
 import { EpisodeLink, ProviderContext } from "../types";
 
-export const getEpisodes = async function ({
-  url,
-  providerContext,
-}: {
-  url: string;
-  providerContext: ProviderContext;
-}): Promise<EpisodeLink[]> {
-  const { axios, cheerio, getBaseUrl } = providerContext;
+// episodes.ts - Updated parsing for Episode Buttons
+export const getEpisodes = async function ({ url, providerContext }: { url: string; providerContext: ProviderContext; }): Promise<EpisodeLink[]> {
+  const { axios, cheerio, commonHeaders: headers } = providerContext;
+
   try {
-    const res = await axios.get(url);
-    const baseUrl = await getBaseUrl("moviezwap");
-    const html = res.data;
-    const $ = cheerio.load(html);
+    const res = await axios.get(url, { headers });
+    const $ = cheerio.load(res.data);
+    const episodes: EpisodeLink[] = [];
 
-    const episodeLinks: EpisodeLink[] = [];
+    // Specifically look for "Episode X" text in links or headers
+    $("a[href*='bollydrive'], a[href*='gdflix']").each((_, element) => {
+      const el = $(element);
+      const text = el.text().trim();
+      const href = el.attr("href");
 
-    $('a[href*="download.php?file="], a[href*="dwload.php?file="]').each(
-      (i, el) => {
-        const downloadPage =
-          $(el).attr("href")?.replace("dwload.php", "download.php") || "";
-        let text = $(el).text().trim();
-        if (text.includes("Download page")) {
-          // Remove "Download" from the text
-          text = "Play";
-        }
-        if (downloadPage && text) {
-          // Only add links with quality in text
-          episodeLinks.push({
-            title: text,
-            link: baseUrl + downloadPage,
-          });
-        }
+      if (href && /Episode\s*\d+/i.test(text)) {
+        episodes.push({
+          title: text,
+          link: href
+        });
       }
-    );
+    });
 
-    return episodeLinks;
+    // Fallback for single links
+    if (episodes.length === 0) {
+      const singleLink = $("a[href*='bollydrive']").first().attr("href");
+      
+    }
+
+    return episodes;
   } catch (err) {
-    console.error(err);
     return [];
   }
 };
