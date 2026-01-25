@@ -67,7 +67,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://moviesdrive.forum/"
+    "sourceUrl": "https://new1.moviesdrive.surf/"
   },
   {
     "display_name": "MultiStream",
@@ -521,7 +521,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://ssrmovies.rentals"
+    "sourceUrl": "https://ssrmovies.mba"
   },
   {
     "display_name": "ogomovies",
@@ -571,7 +571,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://desiremovies.gripe"
+    "sourceUrl": "https://desiremovies.gratis"
   },
   {
     "display_name": "GokuHD",
