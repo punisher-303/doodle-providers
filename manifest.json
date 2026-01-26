@@ -177,7 +177,7 @@
     "type": "india",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://hdmovie2.kiwi"
+    "sourceUrl": "https://hdmovie2.productions"
   },
   {
     "display_name": "ProtonMovies",
@@ -324,7 +324,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://zeefliz.rest"
+    "sourceUrl": "https://zeefliz.life"
   },
   {
     "display_name": "SkyMovieHD",
@@ -354,7 +354,7 @@
     "type": "india",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://www.moviezwap.casa"
+    "sourceUrl": "https://www.moviezwap.sarl"
   },
   {
     "display_name": "Joya9tv",
