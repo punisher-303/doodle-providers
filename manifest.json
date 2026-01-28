@@ -82,7 +82,7 @@
   {
     "display_name": "World4uFree",
     "value": "world4u",
-    "version": "2.3",
+    "version": "2.4",
     "icon": "https://worldfree4u.army/wp-content/themes/worldfree4u/assets/favicon-32x32.png",
     "type": "global",
     "category": "movie/tv",
@@ -162,7 +162,7 @@
   {
     "display_name": "cinevood",
     "value": "cinevood",
-    "version": "2.5",
+    "version": "2.6",
     "icon": "https://1cinevood.fyi/wp-content/uploads/2020/07/favicon2.png",
     "type": "india",
     "category": "movie/tv",
@@ -319,7 +319,7 @@
   {
     "display_name": "Zeefliz",
     "value": "zeefliz",
-    "version": "2.4",
+    "version": "2.5",
     "icon": "https://zeefliz.lat/wp-content/uploads/2025/11/cropped-zeefliz-logo-270x270.jpg",
     "type": "global",
     "category": "movie/tv",
@@ -546,7 +546,7 @@
   {
     "display_name": "cinevood1",
     "value": "cinevood1",
-    "version": "2.1",
+    "version": "2.2",
     "icon": "https://1cinevood.fyi/wp-content/uploads/2020/07/favicon2.png",
     "type": "india",
     "category": "movie/tv",
@@ -656,7 +656,7 @@
   {
     "display_name": "Anihub",
     "value": "anihub",
-    "version": "1.4",
+    "version": "1.5",
     "icon": "https://anihub.in/assets/media/favicon.png",
     "type": "india",
     "category": "anime",
