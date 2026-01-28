@@ -384,7 +384,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://moviesmod.build"
+    "sourceUrl": "https://moviesmod.town"
   },
   {
     "display_name": "FilmyFly",
@@ -591,7 +591,7 @@
     "type": "india",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://bollyflix.do"
+    "sourceUrl": "https://bollyflix.sarl"
   },
   {
     "display_name": "HubMovies",
