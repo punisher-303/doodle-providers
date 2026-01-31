@@ -107,7 +107,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://vegamovies.co.ke"
+    "sourceUrl": "https://vegamoviesog.lat"
   },
   {
     "display_name": "MultiMovies",
@@ -581,7 +581,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://vegamovies.co.ke"
+    "sourceUrl": "https://vegamoviesog.lat"
   },
   {
     "display_name": "Bollyflix",
@@ -791,7 +791,7 @@
     "type": "france",
     "category": "movie/tvshow",
     "disabled": false,
-    "sourceUrl": "https://coflix.bz"
+    "sourceUrl": "https://coflix.ninja"
   },
   {
     "display_name": "Cinestream",
