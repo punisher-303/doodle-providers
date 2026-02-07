@@ -17,7 +17,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://vegamovieshub.baby"
+    "sourceUrl": "https://vegamovieshub.cfd"
   },
   {
     "display_name": "Netflix",
@@ -167,7 +167,7 @@
     "type": "india",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://kmmovies.store"
+    "sourceUrl": "https://kmmovies.best"
   },
   {
     "display_name": "HDMovie2",
@@ -177,7 +177,7 @@
     "type": "india",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://hdmovie2.kiwi"
+    "sourceUrl": "https://hdmovie2.productions"
   },
   {
     "display_name": "ProtonMovies",
@@ -247,7 +247,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://kmmovies.store"
+    "sourceUrl": "https://kmmovies.best"
   },
   {
     "display_name": "KatMovieFix",
@@ -897,7 +897,7 @@
     "type": "english",
     "category": "donghua",
     "disabled": false,
-    "sourceUrl": "https://kmmovies.store"
+    "sourceUrl": "https://kmmovies.best"
   },
   {
     "display_name": "moviespapa",
