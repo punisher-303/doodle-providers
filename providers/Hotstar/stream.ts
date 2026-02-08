@@ -1,27 +1,50 @@
 import { Stream, ProviderContext } from "../types";
 
-const MAIN_URL = "https://net20.cc";
-const STREAM_URL = "https://net51.cc";
+const MAIN_URL = "https://net22.cc";
+const STREAM_URL = "https://net52.cc";
 
 const UA =
-  "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36";
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
+const USER_TOKEN = "233123f803cf02184bf6c67e149cdd50";
+
+/**
+ * 🔐 Step 1: Get Bypass Cookie (t_hash_t)
+ * Matches Kotlin: do { ... } while (!verifyCheck.contains("\"r\":\"n\""))
+ */
 async function getBypassCookie(axios: any): Promise<string> {
-  const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
-    headers: {
-      "User-Agent": UA,
-      "X-Requested-With": "XMLHttpRequest",
-      Referer: `${MAIN_URL}/`,
-      Cookie: "ott=hs; hd=on;",
-    },
-  });
+  try {
+    // Retry loop for reliability
+    for (let i = 0; i < 5; i++) {
+      const res = await axios.post(
+        `${MAIN_URL}/tv/p.php`,
+        null,
+        {
+          headers: {
+            "User-Agent": UA,
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": `${MAIN_URL}/`,
+            // ott=hs for Hotstar
+            "Cookie": `ott=hs; hd=on; user_token=${USER_TOKEN};`,
+          },
+        }
+      );
 
-  const sc = res.headers["set-cookie"];
-  if (!sc) return "";
+      const dataStr = JSON.stringify(res.data);
+      if (dataStr && dataStr.includes('"r":"n"')) {
+        const setCookie = res.headers["set-cookie"];
+        if (setCookie) {
+          const str = Array.isArray(setCookie) ? setCookie.join(";") : setCookie;
+          const match = str.match(/t_hash_t=[^;]+/);
+          if (match) return match[0];
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Hotstar Bypass Error:", e);
+  }
 
-  const raw = Array.isArray(sc) ? sc.join(";") : sc;
-  const match = raw.match(/t_hash_t=[^;]+/);
-  return match ? match[0] : "";
+  return "";
 }
 
 export async function getStream({
@@ -34,46 +57,76 @@ export async function getStream({
   const { axios } = providerContext;
   const unixTime = Math.floor(Date.now() / 1000);
 
+  // link format: "ID|Title"
   const [id, title = ""] = link.split("|");
 
+  /**
+   * 1️⃣ BYPASS
+   */
   const tHash = await getBypassCookie(axios);
   if (!tHash) return [];
 
-  const playlistRes = await axios.get(
-    `${MAIN_URL}/mobile/hs/playlist.php?id=${id}&t=${encodeURIComponent(
-      title
-    )}&tm=${unixTime}`,
-    {
+  // Kotlin: cookies = mapOf("t_hash_t" to cookie_value, "ott" to "hs", "hd" to "on")
+  const cookieHeader = `${tHash}; ott=hs; hd=on`;
+
+  /**
+   * 2️⃣ FETCH PLAYLIST
+   * Kotlin: app.get("$newUrl/mobile/hs/playlist.php...", referer = "$mainUrl/", ...)
+   * Note the specific path /mobile/hs/
+   */
+  const playlistUrl = `${STREAM_URL}/mobile/hs/playlist.php?id=${id}&t=${encodeURIComponent(
+    title
+  )}&tm=${unixTime}`;
+
+  try {
+    const playlistRes = await axios.get(playlistUrl, {
       headers: {
         "User-Agent": UA,
         "X-Requested-With": "XMLHttpRequest",
-        Referer: `${MAIN_URL}/home`,
-        Cookie: `${tHash}; ott=hs; hd=on`,
+        "Referer": `${MAIN_URL}/`, // Kotlin explicitly uses mainUrl as referer here
+        "Cookie": cookieHeader,
       },
-    }
-  );
+    });
 
-  const playlist = playlistRes.data;
-  const streams: Stream[] = [];
+    const streams: Stream[] = [];
+    const playlist = playlistRes.data;
 
-  if (!Array.isArray(playlist)) return [];
+    /**
+     * 3️⃣ PARSE STREAMS
+     */
+    if (Array.isArray(playlist)) {
+      playlist.forEach((item: any) => {
+        item.sources?.forEach((src: any) => {
+          if (!src.file || !src.file.includes(".m3u8")) return;
 
-  for (const item of playlist) {
-    for (const src of item.sources || []) {
-      if (!src.file || !src.file.includes(".m3u8")) continue;
+          // Handle absolute vs relative URLs
+          // Kotlin: "$newUrl/${it.file}"
+          const finalUrl = src.file.startsWith("http")
+            ? src.file
+            : `${STREAM_URL}${src.file}`;
 
-      streams.push({
-        server: `Hotstar ${src.label || "Auto"}`,
-        link: `${STREAM_URL}${src.file}`,
-        type: "m3u8",
-        headers: {
-          "User-Agent": UA,
-          "Cookie": "hd=on",
-          "Referer": `${STREAM_URL}/home`,
-        },
+          streams.push({
+            server: `Hotstar ${src.label || "Auto"}`,
+            link: finalUrl,
+            type: "m3u8",
+            headers: {
+              "User-Agent": UA,
+              "Accept": "*/*",
+              "Connection": "keep-alive",
+              // Kotlin: ExtractorLink referer = "$newUrl/"
+              "Referer": `${STREAM_URL}/`,
+              "Origin": `${STREAM_URL}`,
+              "Cookie": "hd=on",
+            },
+          });
+        });
       });
     }
-  }
 
-  return streams;
+    return streams;
+
+  } catch (e) {
+    console.error("Hotstar Stream Error:", e);
+    return [];
+  }
 }
