@@ -22,7 +22,7 @@
   {
     "display_name": "Netflix",
     "value": "netflixMirror",
-    "version": "2.8",
+    "version": "2.9",
     "icon": "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2023.ico",
     "type": "global",
     "category": "movie/tv",
@@ -832,7 +832,7 @@
   {
     "display_name": "Desny",
     "value": "desny",
-    "version": "1.4",
+    "version": "1.5",
     "icon": "https://static-mh.content.disney.io/matterhorn/assets/logos/disney_logo_dark-baa807690db7.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -842,7 +842,7 @@
   {
     "display_name": "Hotstar",
     "value": "hotstar",
-    "version": "1.4",
+    "version": "1.5",
     "icon": "https://secure-media.hotstar.com/web-assets/prod/jhs_favicon.ico",
     "type": "global",
     "category": "movie/tvshow",
@@ -966,10 +966,73 @@
     "disabled": false
   },
   {
+    "display_name": "Tamilblaster2",
+    "value": "tamilblaster2",
+    "version": "1.0",
+    "icon": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjlqKUeCm1nWBKWGgm9Mg-Qz13Kqk8KWv3Bw&s",
+    "type": "tamil",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
     "display_name": "khatrimazafull1",
     "value": "khatrimazafull1",
     "version": "1.2",
     "icon": "https://khatrimazafull1.shop/wp-content/uploads/2025/11/cropped-favicon-1-180x180.jpg",
+    "type": "global",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "dudefilms",
+    "value": "dudefilms",
+    "version": "1.0",
+    "icon": "https://dudefilms.esq/wp-content/uploads/2021/04/DF_LOGO.png",
+    "type": "global",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "asiancTV",
+    "value": "asiancTV",
+    "version": "1.0",
+    "icon": "https://asianctv.cc//template/images/icon_120x120.png",
+    "type": "global",
+    "category": "drama",
+    "disabled": false
+  },
+  {
+    "display_name": "fibwatch",
+    "value": "fibwatch",
+    "version": "1.0",
+    "icon": "https://fibwatch.biz/themes/default/img/icon.png",
+    "type": "global",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "fibtoon",
+    "value": "fibtoon",
+    "version": "1.0",
+    "icon": "https://fibwatch.biz/themes/default/img/icon.png",
+    "type": "global",
+    "category": "anime",
+    "disabled": false
+  },
+  {
+    "display_name": "fibdrama",
+    "value": "fibdrama",
+    "version": "1.0",
+    "icon": "https://fibwatch.biz/themes/default/img/icon.png",
+    "type": "global",
+    "category": "drama",
+    "disabled": false
+  },
+  {
+    "display_name": "hindim",
+    "value": "hindim",
+    "version": "1.0",
+    "icon": "https://alon3.vdrive.lol/wp-content/uploads/2025/01/cropped-fav-goku18-180x180.jpg",
     "type": "global",
     "category": "movie/tvshow",
     "disabled": false
