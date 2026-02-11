@@ -17,7 +17,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://vegamovie3.biz"
+    "sourceUrl": "https://allvegamovies.com"
   },
   {
     "display_name": "Netflix",
@@ -377,7 +377,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://movies4u.at"
+    "sourceUrl": "https://movies4u.mu"
   },
   {
     "display_name": "MoviesMod",
