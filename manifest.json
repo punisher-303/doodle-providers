@@ -47,7 +47,7 @@
     "type": "india",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://www.moviesnation.coffee"
+    "sourceUrl": "https://moviesnation.horse"
   },
   {
     "display_name": "RogMovies",
@@ -97,7 +97,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://allmovieshub.cash"
+    "sourceUrl": "https://allmovieshub.horse"
   },
   {
     "display_name": "FlixHQ",
