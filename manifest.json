@@ -37,7 +37,7 @@
     "type": "india",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://filmy4cab.wapkizs.com"
+    "sourceUrl": "https://filmycab.run"
   },
   {
     "display_name": "Dooflix",
@@ -117,7 +117,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://multimovies.gripe"
+    "sourceUrl": "https://multimovies.sarl"
   },
   {
     "display_name": "MovieTP",
@@ -557,7 +557,7 @@
     "type": "india",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://one.1cinevood.vision"
+    "sourceUrl": "https://two.1cinevood.vision"
   },
   {
     "display_name": "7starHD",
@@ -567,7 +567,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://7starhd.place"
+    "sourceUrl": "https://7starhd.locker"
   },
   {
     "display_name": "DesireMovie",
@@ -797,7 +797,7 @@
     "type": "france",
     "category": "movie/tvshow",
     "disabled": false,
-    "sourceUrl": "https://coflix.ninja"
+    "sourceUrl": "https://coflix.observer"
   },
   {
     "display_name": "Cinestream",
