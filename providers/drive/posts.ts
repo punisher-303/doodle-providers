@@ -1,0 +1,73 @@
+import { Post, ProviderContext } from "../types";
+
+export const getPosts = async function ({
+  filter,
+  page,
+  signal,
+  providerContext,
+}: {
+  filter: string;
+  page: number;
+  providerValue: string;
+  signal: AbortSignal;
+  providerContext: ProviderContext;
+}): Promise<Post[]> {
+  const { getBaseUrl } = providerContext;
+  const baseUrl = await getBaseUrl("drive");
+  const url = `${baseUrl + filter}page/${page}/`;
+  return posts({ url, signal, providerContext });
+};
+
+export const getSearchPosts = async function ({
+  searchQuery,
+  page,
+  signal,
+  providerContext,
+}: {
+  searchQuery: string;
+  page: number;
+  providerValue: string;
+  providerContext: ProviderContext;
+  signal: AbortSignal;
+}): Promise<Post[]> {
+  const { getBaseUrl } = providerContext;
+  const baseUrl = await getBaseUrl("drive");
+  const url = `${baseUrl}page/${page}/?s=${searchQuery}`;
+  return posts({ url, signal, providerContext });
+};
+
+async function posts({
+  url,
+  signal,
+  providerContext,
+}: {
+  url: string;
+  signal: AbortSignal;
+  providerContext: ProviderContext;
+}): Promise<Post[]> {
+  try {
+    console.log("Fetching URL:", url);
+    const { cheerio } = providerContext;
+    const res = await fetch(url, { signal });
+    const data = await res.text();
+    const $ = cheerio.load(data);
+    const catalog: Post[] = [];
+    $(".poster-card").map((i, element) => {
+      const title = $(element).find(".poster-title").text();
+      const link = $(element).parent().attr("href");
+      const image = $(element).find(".poster-image img").attr("src");
+      console.log({ title, link, image });
+      if (title && link && image) {
+        catalog.push({
+          title: title.replace("Download", "").trim(),
+          link: link,
+          image: image,
+        });
+      }
+    });
+    return catalog;
+  } catch (err) {
+    console.error("drive error ", err);
+    return [];
+  }
+}

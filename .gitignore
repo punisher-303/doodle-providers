@@ -1,0 +1,9 @@
+node_modules/
+build/
+*.log
+*.env
+debug-mlfbd.js
+debug-full-mlfbd.js
+debug-inspect-search.js
+
+build-mlfbd-only.js

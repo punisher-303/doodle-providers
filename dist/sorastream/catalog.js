@@ -1,0 +1,1 @@
+"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.catalog=void 0,exports.catalog=[{title:"Recent",filter:"recent"},{title:"Popular TV Shows",filter:"series"},{title:"Anime",filter:"anime"}];

@@ -1,0 +1,1 @@
+"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.catalog=void 0,exports.catalog=[{title:"Shounen",filter:"/category/shounen"},{title:"Action",filter:"/category/action"},{title:"Fantasy",filter:"/category/fantasy"},{title:"Series",filter:"/serie"}];
