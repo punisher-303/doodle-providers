@@ -17,7 +17,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://allvegamovies.com"
+    "sourceUrl": "http://vega-city.com"
   },
   {
     "display_name": "Netflix",
@@ -107,7 +107,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://vegamoviesog.space"
+    "sourceUrl": "https://vegamovies.spot"
   },
   {
     "display_name": "MultiMovies",
@@ -567,7 +567,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://7starhd.locker"
+    "sourceUrl": "https://7starhd.vodka"
   },
   {
     "display_name": "DesireMovie",
@@ -587,7 +587,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://vegamoviesog.space"
+    "sourceUrl": "https://vegamovies.spot"
   },
   {
     "display_name": "Bollyflix",
