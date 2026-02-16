@@ -22,7 +22,7 @@
   {
     "display_name": "Netflix",
     "value": "netflixMirror",
-    "version": "3.1",
+    "version": "3.2",
     "icon": "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2023.ico",
     "type": "global",
     "category": "movie/tv",
@@ -842,7 +842,7 @@
   {
     "display_name": "Hotstar",
     "value": "hotstar",
-    "version": "1.8",
+    "version": "1.9",
     "icon": "https://secure-media.hotstar.com/web-assets/prod/jhs_favicon.ico",
     "type": "global",
     "category": "movie/tvshow",
