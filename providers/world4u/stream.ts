@@ -46,12 +46,6 @@ export const getStream = async function ({
         "_csrf_token_645a83a41868941e4692aa31e7235f2",
         fastilinksKey || ""
       );
-      console.log(
-        "fastilinksFormData",
-        fastilinksFormData,
-        "fastilinksUrl",
-        url
-      );
       const fastilinksRes2 = await fetch(url, {
         method: "POST",
         headers: headers,
@@ -70,36 +64,9 @@ export const getStream = async function ({
 
     if (url.includes("photolinx")) {
       console.log("photolinx", url);
-      const photolinxBaseUrl = url.split("/").slice(0, 3).join("/");
-      console.log("photolinxBaseUrl", photolinxBaseUrl);
       // const photolinxBaseUrl = url.split('/').slice(0, 3).join('/');
-      const photolinxRes = await fetch(
-        "https://photolinx.space/download/SzbPKzt6YMO",
-        {
-          headers: {
-            accept:
-              "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
-            "cache-control": "no-cache",
-            pragma: "no-cache",
-            priority: "u=0, i",
-            "sec-ch-ua":
-              '"Not;A=Brand";v="99", "Microsoft Edge";v="139", "Chromium";v="139"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Windows"',
-            "sec-fetch-dest": "document",
-            "sec-fetch-mode": "navigate",
-            "sec-fetch-site": "none",
-            "sec-fetch-user": "?1",
-            "upgrade-insecure-requests": "1",
-            cookie:
-              "PHPSESSID=f2211def7938d7228daaa37ffeabcfe0; ext_name=ojplmecpdpgccookcobabopnaifgidhf",
-          },
-          body: null,
-          method: "GET",
-        }
-      );
-      const photolinxData = await photolinxRes.text();
+      const photolinxRes = await axios.get(url, { headers });
+      const photolinxData = photolinxRes.data;
       const $$$ = cheerio.load(photolinxData);
       const access_token = $$$("#generate_url").attr("data-token");
       const uid = $$$("#generate_url").attr("data-uid");
@@ -112,25 +79,13 @@ export const getStream = async function ({
       };
       console.log("photolinxData", JSON.stringify(body));
 
-      const photolinxRes2 = await fetch(`${photolinxBaseUrl}/action`, {
+      const photolinxRes2 = await fetch("https://photolinx.shop/action", {
         headers: {
-          accept: "application/json, text/plain, */*",
-          "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
-          "cache-control": "no-cache",
-          "content-type": "application/json; charset=UTF-8",
-          pragma: "no-cache",
-          priority: "u=1, i",
-          "sec-ch-ua":
-            '"Not;A=Brand";v="99", "Microsoft Edge";v="139", "Chromium";v="139"',
-          "sec-ch-ua-mobile": "?0",
-          "sec-ch-ua-platform": '"Windows"',
-          "sec-fetch-dest": "empty",
-          "sec-fetch-mode": "cors",
           "sec-fetch-site": "same-origin",
           "x-requested-with": "xmlhttprequest",
-          cookie:
-            "PHPSESSID=f2211def7938d7228daaa37ffeabcfe0; ext_name=ojplmecpdpgccookcobabopnaifgidhf",
-          Referer: url,
+          cookie: "PHPSESSID=9a8d855c700cf0711831c04960c2e2b4",
+          Referer: "https://photolinx.shop/download/5mPkrBD0D2x",
+          "Referrer-Policy": "strict-origin-when-cross-origin",
         },
         body: JSON.stringify(body),
         method: "POST",
@@ -150,8 +105,8 @@ export const getStream = async function ({
       }
     }
 
-    const res = await fetch(url, { headers: headers });
-    const html = await res.text();
+    const res = await axios.get(url, { headers });
+    const html = res.data;
     const streamLinks: Stream[] = [];
     let data = { download: "" };
     try {
@@ -178,8 +133,7 @@ export const getStream = async function ({
     // console.log('data', html);
     const mediafireUrl =
       $('h1:contains("Download")').find("a").attr("href") ||
-      $(".input.popsok").attr("href") ||
-      url;
+      $(".input.popsok").attr("href");
     console.log("mediafireUrl", mediafireUrl);
     if (mediafireUrl) {
       const directUrl = await fetch(mediafireUrl, {

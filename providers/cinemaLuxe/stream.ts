@@ -1,9 +1,30 @@
-import { Stream, ProviderContext } from "../types";
-import { hubcloudExtractor } from "../extractors/hubcloud";
-import { gdflixExtractor } from "../extractors/gdflix";
 
-export const getStream = async ({
+import { ProviderContext, Stream } from "../types";
+
+const headers = {
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+  "Cache-Control": "no-store",
+  "Accept-Language": "en-US,en;q=0.9",
+  DNT: "1",
+  "sec-ch-ua":
+    '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": '"Windows"',
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  Cookie:
+    "xla=s4t; _ga=GA1.1.1081149560.1756378968; _ga_BLZGKYN5PF=GS2.1.s1756378968$o1$g1$t1756378984$j44$l0$h0",
+  "Upgrade-Insecure-Requests": "1",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+};
+
+export async function getStream({
   link,
+  type,
   signal,
   providerContext,
 }: {
@@ -11,83 +32,87 @@ export const getStream = async ({
   type: string;
   signal: AbortSignal;
   providerContext: ProviderContext;
-}): Promise<Stream[]> => {
-  const { axios, cheerio, commonHeaders: headers } = providerContext;
+}) {
+  const { axios, cheerio, extractors } = providerContext;
+  const { hubcloudExtracter } = extractors;
   try {
-    let newLink = link;
-    console.log("getStream 1", link);
-    if (link.includes("linkstore")) {
-      console.log("linkstore detected");
-      const res = await fetch(link, {
-        signal,
-        headers: {
-          accept:
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-          "accept-language": "en-US,en;q=0.9,en-IN;q=0.8",
-          "cache-control": "no-cache",
-          pragma: "no-cache",
-          priority: "u=0, i",
-          "sec-ch-ua":
-            '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-          "sec-ch-ua-mobile": "?0",
-          "sec-ch-ua-platform": '"Windows"',
-          "sec-fetch-dest": "document",
-          "sec-fetch-mode": "navigate",
-          "sec-fetch-site": "none",
-          "sec-fetch-user": "?1",
-          "upgrade-insecure-requests": "1",
-          cookie:
-            "PHPSESSID=9o57cff841dqtv8djtn1rp1712; ext_name=ojplmecpdpgccookcobabopnaifgidhf",
-        },
-      });
-      const html = await res.text();
-      const refreshMetaMatch = html.match(
-        /<meta\s+http-equiv="refresh"\s+content="[^"]*url=([^"]+)"/i,
-      );
-      if (refreshMetaMatch && refreshMetaMatch[1]) {
-        link = refreshMetaMatch[1];
-      }
-    } else {
-      console.log("linkstore not detected");
-    }
-    console.log("getStream 2", link);
+    const streamLinks: Stream[] = [];
+    console.log("dotlink", link);
+    if (type === "movie") {
+      // vlink
+      const dotlinkRes = await axios(`${link}`, { headers });
+      const dotlinkText = dotlinkRes.data;
+      // console.log('dotlinkText', dotlinkText);
+      const vlink = dotlinkText.match(/<a\s+href="([^"]*cloud\.[^"]*)"/i) || [];
+      // console.log('vLink', vlink[1]);
+      link = vlink[1];
 
-    if (link.includes("luxedrive")) {
-      const res = await axios.get(link, { signal });
-      const $ = cheerio.load(res.data);
-      const hubcloudLink = $("a.btn.hubcloud").attr("href");
-      if (hubcloudLink) {
-        newLink = hubcloudLink;
-      } else {
-        const gdFlixLink = $("a.btn.gdflix").attr("href");
-        if (gdFlixLink) {
-          newLink = gdFlixLink;
+      // filepress link
+      try {
+        const $ = cheerio.load(dotlinkText);
+        const filepressLink = $(
+          '.btn.btn-sm.btn-outline[style="background:linear-gradient(135deg,rgb(252,185,0) 0%,rgb(0,0,0)); color: #fdf8f2;"]'
+        )
+          .parent()
+          .attr("href");
+        // console.log('filepressLink', filepressLink);
+        const filepressID = filepressLink?.split("/").pop();
+        const filepressBaseUrl = filepressLink
+          ?.split("/")
+          .slice(0, -2)
+          .join("/");
+        // console.log('filepressID', filepressID);
+        // console.log('filepressBaseUrl', filepressBaseUrl);
+        const filepressTokenRes = await axios.post(
+          filepressBaseUrl + "/api/file/downlaod/",
+          {
+            id: filepressID,
+            method: "indexDownlaod",
+            captchaValue: null,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Referer: filepressBaseUrl,
+            },
+          }
+        );
+        // console.log('filepressTokenRes', filepressTokenRes.data);
+        if (filepressTokenRes.data?.status) {
+          const filepressToken = filepressTokenRes.data?.data;
+          const filepressStreamLink = await axios.post(
+            filepressBaseUrl + "/api/file/downlaod2/",
+            {
+              id: filepressToken,
+              method: "indexDownlaod",
+              captchaValue: null,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Referer: filepressBaseUrl,
+              },
+            }
+          );
+          // console.log('filepressStreamLink', filepressStreamLink.data);
+          streamLinks.push({
+            server: "filepress",
+            link: filepressStreamLink.data?.data?.[0],
+            type: "mkv",
+          });
         }
+      } catch (error) {
+        console.log("filepress error: ");
+        // console.error(error);
       }
     }
-    if (newLink.includes("flix")) {
-      const sreams = await gdflixExtractor(
-        newLink,
-        signal,
-        axios,
-        cheerio,
-        headers,
-      );
-      return sreams;
+
+    return await hubcloudExtracter(link, signal);
+  } catch (error: any) {
+    console.log("getStream error: ", error);
+    if (error.message.includes("Aborted")) {
+    } else {
     }
-    const res2 = await axios.get(newLink, { signal });
-    const data2 = res2.data;
-    const hcLink = data2.match(/location\.replace\('([^']+)'/)?.[1] || newLink;
-    const hubCloudLinks = await hubcloudExtractor(
-      hcLink.includes("https://hubcloud") ? hcLink : newLink,
-      signal,
-      axios,
-      cheerio,
-      headers,
-    );
-    return hubCloudLinks;
-  } catch (err) {
-    console.error(err);
     return [];
   }
-};
+}

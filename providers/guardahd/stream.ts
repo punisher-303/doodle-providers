@@ -1,5 +1,4 @@
 import { ProviderContext, Stream } from "../types";
-import { superVideoExtractor } from "../extractors/supeVideo";
 
 export const getStream = async function ({
   link: id,
@@ -11,7 +10,8 @@ export const getStream = async function ({
   providerContext: ProviderContext;
 }): Promise<Stream[]> {
   try {
-    const { axios, cheerio, commonHeaders } = providerContext;
+    const { axios, cheerio, extractors } = providerContext;
+    const { superVideoExtractor } = extractors;
     async function ExtractGuardahd({
       imdb, // type, // season,
     }: // episode,
@@ -39,16 +39,10 @@ export const getStream = async function ({
         const controller2 = new AbortController();
         const signal2 = controller2.signal;
         setTimeout(() => controller2.abort(), 4000);
-        const res2 = await fetch("https:" + superVideoUrl, {
-          signal: signal2,
-          headers: {
-            ...commonHeaders,
-          },
-        });
+        const res2 = await fetch("https:" + superVideoUrl, { signal: signal2 });
         const data = await res2.text();
-        console.log("mostraguarda data:", data);
+        //   console.log('mostraguarda data:', data);
         const streamUrl = await superVideoExtractor(data);
-        console.log("superStreamUrl:", streamUrl);
         return streamUrl;
       } catch (err) {
         console.error("Error in GetMostraguardaStram:", err);
@@ -79,7 +73,7 @@ export const getStream = async function ({
         const html = res.data;
         const $ = cheerio.load(html);
         const superVideoUrl = $('li:contains("supervideo")').attr("data-link");
-        // console.log("superVideoUrl:", superVideoUrl);
+        console.log("superVideoUrl:", superVideoUrl);
 
         if (!superVideoUrl) {
           return null;
@@ -87,12 +81,7 @@ export const getStream = async function ({
         const controller2 = new AbortController();
         const signal2 = controller2.signal;
         setTimeout(() => controller2.abort(), 4000);
-        const res2 = await fetch("https:" + superVideoUrl, {
-          signal: signal2,
-          headers: {
-            ...commonHeaders,
-          },
-        });
+        const res2 = await fetch("https:" + superVideoUrl, { signal: signal2 });
         const data = await res2.text();
         //   console.log('mostraguarda data:', data);
         const streamUrl = await superVideoExtractor(data);

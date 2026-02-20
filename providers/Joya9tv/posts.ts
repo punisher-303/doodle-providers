@@ -38,13 +38,7 @@ export async function getSearchPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  return fetchPosts({
-    filter: "",
-    page,
-    query: searchQuery,
-    signal,
-    providerContext,
-  });
+  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext });
 }
 
 // --- Core fetch function ---
@@ -62,32 +56,25 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const baseUrl = await providerContext.getBaseUrl("joya9tv");
+    const baseUrl = "https://joya9tv1.com";
     let url: string;
 
-    if (
-      query &&
-      query.trim() &&
-      query.trim().toLowerCase() !== "what are you looking for?"
-    ) {
+    if (query && query.trim() && query.trim().toLowerCase() !== "what are you looking for?") {
       const params = new URLSearchParams();
       params.append("s", query.trim());
       if (page > 1) params.append("paged", page.toString());
       url = `${baseUrl}/?${params.toString()}`;
     } else if (filter) {
       url = filter.startsWith("/")
-        ? `${baseUrl}${filter.replace(/\/$/, "")}${
-            page > 1 ? `/page/${page}` : ""
-          }`
+        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
         : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
     } else {
       url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
     }
 
-    const { cheerio } = providerContext;
-    const res = await fetch(url, { headers: defaultHeaders, signal });
-    const data = await res.text();
-    const $ = cheerio.load(data || "");
+    const { axios, cheerio } = providerContext;
+    const res = await axios.get(url, { headers: defaultHeaders, signal });
+    const $ = cheerio.load(res.data || "");
 
     const resolveUrl = (href: string) =>
       href?.startsWith("http") ? href : new URL(href, baseUrl).href;
@@ -123,8 +110,7 @@ async function fetchPosts({
       link = resolveUrl(link);
       if (seen.has(link)) return;
 
-      let title =
-        card.find("a").attr("title") || card.find("img").attr("alt") || "";
+      let title = card.find("a").attr("title") || card.find("img").attr("alt") || "";
       title = title.trim();
       if (!title) return;
 
@@ -135,14 +121,9 @@ async function fetchPosts({
       catalog.push({ title, link, image });
     });
 
-    console.log(`fetchPosts: Fetched ${catalog.length} posts from ${url}`);
-
     return catalog.slice(0, 100);
   } catch (err) {
-    console.error(
-      "fetchPosts error:",
-      err instanceof Error ? err.message : String(err)
-    );
+    console.error("fetchPosts error:", err instanceof Error ? err.message : String(err));
     return [];
   }
 }

@@ -1,5 +1,4 @@
 import { ProviderContext, Stream } from "../types";
-import { hubcloudExtractor } from "../extractors/hubcloud";
 
 const headers = {
   Accept:
@@ -16,10 +15,10 @@ const headers = {
   "Sec-Fetch-Site": "none",
   "Sec-Fetch-User": "?1",
   Cookie:
-    "ext_name=ojplmecpdpgccookcobabopnaifgidhf; cf_clearance=6yZYfXQxBgjaD1eacR5zZCz7njssbxjtSZZCElTOGk0-1764836255-1.2.1.1-bzHvDcDRLp6AAYo7qvGVzJ6Gk6zaqAepuGiGhAWCGYL.ZDpw5yI4TkUIXDgAnEhGCZ9J5X2_OagzgeMHZrd8rzeyAFQXj0dmYMErcfII7_Rhq5kZ4kAtS0tl9PtaNKKd2m4taIufySXCCstl3iNLMODTjbsW_KZi8U8DauOdGSAhBd1DCGxvLlAOM.snfkhb0yQiVJcLW8Bv9IeKQac0ar_TKkV6QexqNZYiyRXnE7E; xla=s4t",
+    "_ga=GA1.1.10613951.1756380104; xla=s4t; _ga_1CG5NQ0F53=GS2.1.s1756380103$o1$g1$t1756380120$j43$l0$h0",
   "Upgrade-Insecure-Requests": "1",
-  "user-agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
 };
 
 export async function getStream({
@@ -33,7 +32,8 @@ export async function getStream({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }) {
-  const { axios, cheerio, commonHeaders } = providerContext;
+  const { axios, cheerio, extractors } = providerContext;
+  const { hubcloudExtracter } = extractors;
   try {
     const streamLinks: Stream[] = [];
     console.log("dotlink", link);
@@ -50,7 +50,7 @@ export async function getStream({
       try {
         const $ = cheerio.load(dotlinkText);
         const filepressLink = $(
-          '.btn.btn-sm.btn-outline[style="background:linear-gradient(135deg,rgb(252,185,0) 0%,rgb(0,0,0)); color: #fdf8f2;"]',
+          '.btn.btn-sm.btn-outline[style="background:linear-gradient(135deg,rgb(252,185,0) 0%,rgb(0,0,0)); color: #fdf8f2;"]'
         )
           .parent()
           .attr("href");
@@ -74,7 +74,7 @@ export async function getStream({
               "Content-Type": "application/json",
               Referer: filepressBaseUrl,
             },
-          },
+          }
         );
         // console.log('filepressTokenRes', filepressTokenRes.data);
         if (filepressTokenRes.data?.status) {
@@ -91,7 +91,7 @@ export async function getStream({
                 "Content-Type": "application/json",
                 Referer: filepressBaseUrl,
               },
-            },
+            }
           );
           // console.log('filepressStreamLink', filepressStreamLink.data);
           streamLinks.push({
@@ -106,7 +106,7 @@ export async function getStream({
       }
     }
 
-    return await hubcloudExtractor(link, signal, axios, cheerio, commonHeaders);
+    return await hubcloudExtracter(link, signal);
   } catch (error: any) {
     console.log("getStream error: ", error);
     if (error.message.includes("Aborted")) {

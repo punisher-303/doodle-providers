@@ -7,69 +7,50 @@ export const getEpisodes = async function ({
   url: string;
   providerContext: ProviderContext;
 }): Promise<EpisodeLink[]> {
+  const { axios, cheerio, commonHeaders: headers } = providerContext;
+  console.log("getEpisodeLinks", url);
+
   try {
-    if (!url.includes("luxelinks") || url.includes("cinemalux")) {
-      const res = await providerContext.axios.get(url, {
-        headers: providerContext.commonHeaders,
-      });
-      const data = res.data;
-      const encodedLink = data.match(/"link":"([^"]+)"/)?.[1];
-      if (encodedLink) {
-        url = encodedLink ? atob(encodedLink) : url;
-      } else {
-        const redirectUrlRes = await fetch(
-          "https://cm-decrypt.8man.workers.dev/cinemaluxe",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ url }),
-          }
-        );
-        const redirectUrl = await redirectUrlRes.json();
-        url = redirectUrl?.redirectUrl || url;
-      }
-    }
-    const episodeLinks: EpisodeLink[] = [];
-
-    if (url.includes("luxedrive") || url.includes("drive.linkstore")) {
-      episodeLinks.push({
-        title: "Movie",
-        link: url,
-      });
-      return episodeLinks;
-    }
-    const res = await providerContext.axios.get(url, {
-      headers: providerContext.commonHeaders,
+    const res = await axios.get(url, {
+      headers: {
+        ...headers,
+        cookie:
+          "ext_name=ojplmecpdpgccookcobabopnaifgidhf; cf_clearance=Zl2yiOCN3pzGUd0Bgs.VyBXniJooDbG2Tk1g7DEoRnw-1756381111-1.2.1.1-RVPZoWGCAygGNAHavrVR0YaqASWZlJyYff8A.oQfPB5qbcPrAVud42BzsSwcDgiKAP0gw5D92V3o8XWwLwDRNhyg3DuL1P8wh2K4BCVKxWvcy.iCCxczKtJ8QSUAsAQqsIzRWXk29N6X.kjxuOTYlfB2jrlq12TRDld_zTbsskNcTxaA.XQekUcpGLseYqELuvlNOQU568NZD6LiLn3ICyFThMFAx6mIcgXkxVAvnxU; xla=s4t",
+      },
     });
-    const html = res.data;
-    let $ = providerContext.cheerio.load(html);
 
-    $("a.maxbutton-4,a.maxbutton,.maxbutton-hubcloud,.ep-simple-button").map(
-      (i, element) => {
-        const title = $(element).text()?.trim();
-        const link = $(element).attr("href");
-        if (
-          title &&
-          link &&
-          !title.includes("Batch") &&
-          !title.toLowerCase().includes("zip")
-        ) {
-          episodeLinks.push({
-            title: title
-              .replace(/\(\d{4}\)/, "")
-              .replace("Download", "Movie")
-              .replace("⚡", "")
-              .trim(),
-            link,
+    const $ = cheerio.load(res.data);
+    const episodes: EpisodeLink[] = [];
+
+    // अब हर Episode ब्लॉक को पकड़ो जो -:Episodes: या Episode शब्द रखता हो
+    $("h4:contains('Episode'), h4:contains('Episodes')").each((_, el) => {
+      const episodeTitle = $(el).text().trim();
+
+      // Episode number निकालना
+      const episodeNumberMatch = episodeTitle.match(/\d+/);
+      const episodeNumber = episodeNumberMatch ? episodeNumberMatch[0] : "";
+
+      // इसके नीचे वाले <p> में सारे links
+      const nextLinks = $(el).next("p").find("a");
+
+      nextLinks.each((__, linkEl) => {
+        const btn = $(linkEl);
+        const link = btn.attr("href") || "";
+        const btnText = btn.text().trim();
+
+        // सिर्फ Zee-Cloud [Resumable] वाले लिंक
+        if (/zcloud\.lol/i.test(link) || /Zee-Cloud/i.test(btnText)) {
+          episodes.push({
+            title: `Episode ${episodeNumber || ""}`.trim(),
+            link: link,
           });
         }
-      }
-    );
-    return episodeLinks;
+      });
+    });
+
+    return episodes;
   } catch (err) {
-    console.error("cl episode links", err);
+    console.log("getEpisodeLinks error:", err);
     return [];
   }
 };

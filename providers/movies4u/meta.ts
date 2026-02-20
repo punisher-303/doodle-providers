@@ -1,6 +1,7 @@
+// Updated meta.ts with size extraction and linkList support
+
 import { Info, Link, ProviderContext } from "../types";
 
-// Headers
 const headers = {
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -22,10 +23,7 @@ const headers = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
 };
 
-export const getMeta = async function ({
-  link,
-  providerContext,
-}: {
+export const getMeta = async function ({ link, providerContext }: {
   link: string;
   providerContext: ProviderContext;
 }): Promise<Info> {
@@ -48,9 +46,7 @@ export const getMeta = async function ({
     });
 
     const $ = cheerio.load(response.data);
-    const infoContainer = $(".entry-content, .post-inner").length
-      ? $(".entry-content, .post-inner")
-      : $("body");
+    const infoContainer = $(".entry-content").first();
 
     const result: Info = {
       title: "",
@@ -61,103 +57,124 @@ export const getMeta = async function ({
       linkList: [],
     };
 
-    // --- Type determination ---
-    const infoParagraph = $("h2.movie-title").next("p").text();
-    if (
-      infoParagraph.includes("Season:") ||
-      infoParagraph.includes("Episode:") ||
-      infoParagraph.includes("SHOW Name:")
-    ) {
-      result.type = "series";
-    } else {
-      result.type = "movie";
-    }
+    // Title
+    const rawTitle = $("h1.page-title").text().trim();
+    result.title = rawTitle.replace(/\(\d{4}\)|\d+p|HQ HDTC|\|/g, "").trim();
+    if (!result.title) result.title = "Unknown Title";
 
-    // --- Title ---
-    const rawTitle = $("h1").text().trim() || $("h2").text().trim();
-    result.title = rawTitle.split(/\[| \d+p| x\d+/)[0].trim();
-    const showNameMatch =
-      infoParagraph.match(/SHOW Name: (.+)/) ||
-      infoParagraph.match(/Name: (.+)/);
-    if (showNameMatch && showNameMatch[1]) {
-      result.title = result.title || showNameMatch[1].trim();
-    }
+    // IMDb ID
+    result.imdbId = "";
 
-    // --- IMDb ID ---
-    const imdbMatch =
-      infoContainer.html()?.match(/tt\d+/) ||
-      $("a[href*='imdb.com/title/']").attr("href")?.match(/tt\d+/);
-    result.imdbId = imdbMatch ? imdbMatch[0] : "";
-
-    // --- Image ---
-    let image =
-      infoContainer.find(".post-thumbnail img").attr("src") ||
-      infoContainer.find("img[src]").first().attr("src") ||
-      "";
+    // Main poster image
+    let image = infoContainer.find("img[src]").first().attr("src") || "";
     if (image.startsWith("//")) image = "https:" + image;
-    else if (image.startsWith("/")) image = baseUrl + image;
-    if (image.includes("no-thumbnail") || image.includes("placeholder"))
-      image = "";
+    if (image.includes("placeholder") || image.includes("no-thumbnail")) image = "";
     result.image = image;
 
-    // --- Synopsis ---
-    result.synopsis =
-      $("h3.movie-title")
-        .filter((i, el) => $(el).text().includes("Storyline"))
-        .next("p")
-        .text()
-        .trim() ||
-      infoContainer.find("p").first().text().trim() ||
-      "";
+    // Synopsis
+    const synopsisHeading = infoContainer.find(
+      "h4:contains('synopsis'):contains('PLOT')"
+    ).first();
+    result.synopsis = synopsisHeading.next("p").text().trim() || "";
 
-    // --- LinkList extraction ---
+    // -----------------------
+    // DOWNLOAD LINK EXTRACTION
+    // Now supports: <h4> + <p> format
+    // -----------------------
+
     const links: Link[] = [];
-    const h4Elements = $(".download-links-div").find("> h4");
 
-    h4Elements.each((index, element) => {
-      const el = $(element);
-      const titleText = el.text().trim();
-      const qualityMatch = titleText.match(/\d+p\b/)?.[0];
-      const fullTitle = titleText;
+infoContainer.find("h3, h4, h5").each((i, el) => {
+  const titleEl = $(el as any);
+  const blockTitle = titleEl.text().trim();
+  const tagName = (el as any).tagName?.toLowerCase();
 
-      const downloadButtons = el.next(".downloads-btns-div").find("a");
+  if (tagName === "h3" || tagName === "h4" || tagName === "h5") {
+    const nextEl = titleEl.next();
 
-      if (downloadButtons.length && qualityMatch) {
-        if (result.type === "series") {
-          links.push({
-            title: fullTitle,
-            quality: qualityMatch,
-            episodesLink: downloadButtons.attr("href") || "",
-            directLinks: [],
-          });
-        } else {
-          // Movie: collect all direct download buttons
-          const directLinks: Link["directLinks"] = [];
+    // Find the element after title — could be <p> or another <h4>
+    const linkContainer =
+      nextEl.is("p") ? nextEl :
+      nextEl.find("a").length ? nextEl :
+      null;
 
-          downloadButtons.each((i, btn) => {
-            const btnEl = $(btn);
-            const link = btnEl.attr("href");
-            if (link) {
-              directLinks.push({
-                title: btnEl.text().trim() || "Download",
-                link,
-                type: "movie", // literal type
-              });
-            }
-          });
+    if (!linkContainer) return;
 
-          if (directLinks.length) {
-            links.push({
-              title: fullTitle,
-              quality: qualityMatch,
-              episodesLink: "",
-              directLinks,
-            });
-          }
-        }
-      }
+    // Try V-Cloud first
+    const vcloudLink = linkContainer.find("a").filter((i, a) =>
+      $(a).text().toLowerCase().includes("v-cloud")
+    );
+
+    let finalUrl = "";
+    let finalTitle = "";
+
+    if (vcloudLink.length) {
+      // Priority: V-Cloud found
+      finalUrl = vcloudLink.attr("href") || "";
+      finalTitle = "V-Cloud";
+    } else {
+      // Fallback: Any <a> inside (Download Now type)
+      const fallback = linkContainer.find("a").first();
+      if (!fallback.length) return;
+
+      finalUrl = fallback.attr("href") || "";
+      finalTitle = fallback.text().trim() || "Download";
+    }
+
+    // Push to output
+    links.push({
+      title: blockTitle,
+      quality: "",
+      episodesLink: finalUrl,
+      directLinks: [
+        {
+          title: finalTitle,
+          link: finalUrl,
+          type: "movie",
+        },
+      ],
     });
 
+    return;
+  }
+
+
+  // -----------------------------------------
+  // ✔️ H4 / H5 processing
+  // -----------------------------------------
+  if (
+    !blockTitle.includes("480p") &&
+    !blockTitle.includes("720p") &&
+    !blockTitle.includes("1080p") &&
+    !blockTitle.includes("2160p")
+  ) return;
+
+  const qualityMatch =
+    blockTitle.match(/(480p|720p|1080p|2160p)/)?.[0] || "";
+
+  const sizeMatch = blockTitle.match(/\[(.*?)\]/)?.[1] || "";
+
+  const nextP = titleEl.next("p");
+  const aTag = nextP.find("a");
+  const href = aTag.attr("href") || "";
+
+  if (!href) return;
+
+  const directLinks: Link["directLinks"] = [
+    {
+      title: sizeMatch ? `${qualityMatch} (${sizeMatch})` : qualityMatch,
+      link: href,
+      type: "movie",
+    },
+  ];
+
+  links.push({
+    title: blockTitle,
+    quality: qualityMatch,
+    episodesLink: href,
+    directLinks,
+  });
+});
     result.linkList = links;
     return result;
   } catch (err) {

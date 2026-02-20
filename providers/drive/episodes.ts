@@ -15,7 +15,7 @@ export const getEpisodes = async function ({
 
     const episodeLinks: EpisodeLink[] = [];
 
-    // Try old format first (backward compatibility)
+    /* ===== EXISTING LOGIC (NO CHANGE) ===== */
     $('a:contains("HubCloud")').map((i, element) => {
       const title = $(element).parent().prev().text();
       const link = $(element).attr("href");
@@ -27,58 +27,32 @@ export const getEpisodes = async function ({
       }
     });
 
-    // If old format didn't work, try new format
-    if (episodeLinks.length === 0) {
-      // Find all anchor tags with href containing streaming services
-      const streamingServices = ["hubcloud", "gdflix"];
-      let currentTitle = "";
+    /* ===== NEW ADDITION (IMAGE BASED LINKS) ===== */
+    $('a[href]').each((_, el) => {
+      const link = $(el).attr("href") || "";
 
-      $('h5 span[style*="color"], h5').each((i, element) => {
-        const text = $(element).text().trim();
-        // Look for titles that contain quality indicators or episode info
-        if (
-          text &&
-          (text.match(/\d{3,4}p/) ||
-            text.includes("Ep") ||
-            text.includes("Episode"))
-        ) {
-          currentTitle = text;
+      // HubCloud / Gdflix detect by URL or image src
+      const imgSrc = $(el).find("img").attr("src") || "";
 
-          // Find the next links after this title
-          let nextElement = $(element).parent();
-          for (let j = 0; j < 10; j++) {
-            nextElement = nextElement.next();
-            if (!nextElement.length) break;
+      if (
+        link.includes("hubcloud") ||
+        imgSrc.includes("hubcloud")
+      ) {
+        const title =
+          $(el).closest("p, h4").prev().text().trim() ||
+          "Play";
 
-            const links = nextElement.find("a[href]");
-            links.each((k, linkEl) => {
-              const href = $(linkEl).attr("href");
-              if (
-                href &&
-                streamingServices.some((service) => href.includes(service))
-              ) {
-                // Determine server name from URL
-                let serverName = "Play";
-                if (href.includes("hubcloud")) serverName = "HubCloud";
-                else if (href.includes("gdflix")) serverName = "GDFlix";
-                else if (href.includes("pixeldrain")) serverName = "Pixeldrain";
-                else if (href.includes("fastdl")) serverName = "FastDL";
-
-                const title = currentTitle
-                  ? `${currentTitle} - ${serverName}`
-                  : serverName;
-                episodeLinks.push({ title, link: href });
-              }
-            });
-          }
+        // duplicate avoid
+        if (!episodeLinks.find(e => e.link === link)) {
+          episodeLinks.push({
+            title,
+            link,
+          });
         }
-      });
-    }
+      }
+    });
 
-    // console.log(episodeLinks);
-    return episodeLinks.length > 0
-      ? episodeLinks
-      : [{ title: "Play", link: url }];
+    return episodeLinks;
   } catch (err) {
     console.error(err);
     return [

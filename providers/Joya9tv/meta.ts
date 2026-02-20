@@ -29,7 +29,7 @@ export const getMeta = async function ({
   link: string;
   providerContext: ProviderContext;
 }): Promise<Info> {
-  const { cheerio } = providerContext;
+  const { axios, cheerio } = providerContext;
   const url = link;
   const baseUrl = url.split("/").slice(0, 3).join("/");
 
@@ -43,15 +43,14 @@ export const getMeta = async function ({
   };
 
   try {
-    const response = await fetch(url, {
+    const response = await axios.get(url, {
       headers: { ...headers, Referer: baseUrl },
     });
 
-    const data = await response.text();
-    const $ = cheerio.load(data);
+    const $ = cheerio.load(response.data);
     // Use the main container from the new HTML structure
     const infoContainer = $(".content.right").first();
-
+    
     const result: Info = {
       title: "",
       synopsis: "",
@@ -80,22 +79,20 @@ export const getMeta = async function ({
     let finalTitle = rawTitle
       .replace(/ Download.*|\[Episode \d+ Added\]/g, "")
       .trim();
-
+    
     // Extract base title before S19, (2025), etc.
-    finalTitle =
-      finalTitle.split(/\(2025\)| S\d+/i)[0].trim() || "Unknown Title";
+    finalTitle = finalTitle.split(/\(2025\)| S\d+/i)[0].trim() || "Unknown Title";
     result.title = finalTitle;
 
     // --- IMDb ID ---
     // The new HTML doesn't explicitly show an IMDb ID, so we'll rely on a more generic search.
     const imdbMatch = infoContainer.html()?.match(/tt\d+/);
-    result.imdbId = imdbMatch ? imdbMatch[0] : "";
+    result.imdbId = imdbMatch ? imdbMatch[0] : ""; 
 
     // --- Image ---
-    let image =
-      infoContainer.find(".poster img[src]").first().attr("src") || "";
+    let image = infoContainer.find(".poster img[src]").first().attr("src") || "";
     if (image.startsWith("//")) image = "https:" + image;
-
+    
     // Check for "no-thumbnail" or "placeholder" in the filename
     if (image.includes("no-thumbnail") || image.includes("placeholder"))
       image = "";
@@ -113,9 +110,9 @@ export const getMeta = async function ({
     downloadTable.find("tr").each((index, element) => {
       const row = $(element);
       const quality = row.find("strong.quality").text().trim();
-
+      
       // Get the size from the fourth <td> in the row
-      const size = row.find("td:nth-child(4)").text().trim();
+      const size = row.find("td:nth-child(4)").text().trim(); 
 
       const directLinkAnchor = row.find("td a").first();
       const directLink = directLinkAnchor.attr("href");
@@ -123,15 +120,15 @@ export const getMeta = async function ({
 
       if (quality && directLink) {
         // FIX: Assert the type to satisfy the Link interface's literal type requirement
-        const assertedType = result.type as "movie" | "series";
-
+        const assertedType = result.type as "movie" | "series"; 
+        
         // Assuming the table links are for the entire batch/season
         const directLinks = [
-          {
-            title: linkTitle || "Download Link",
-            link: directLink,
-            type: assertedType, // Use the asserted type
-          },
+            {
+                title: linkTitle || "Download Link",
+                link: directLink,
+                type: assertedType, // Use the asserted type
+            }
         ];
 
         // Combine title, quality, and size for the LinkList entry
@@ -143,8 +140,9 @@ export const getMeta = async function ({
 
         links.push({
           title: fullTitle,
-          quality: quality.replace(/[^0-9p]/g, ""), // Clean to just 480p, 720p, 1080p
+          quality: quality.replace(/[^0-9p]/g, ''), // Clean to just 480p, 720p, 1080p
           // The direct link is to a page that lists all episodes, so it acts as the episodesLink
+          episodesLink: directLink, 
           directLinks,
         });
       }
