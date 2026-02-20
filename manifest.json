@@ -377,7 +377,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://movies4u.mu"
+    "sourceUrl": "https://movies4u.ls"
   },
   {
     "display_name": "MoviesMod",
@@ -507,7 +507,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://www.mkvhub.store"
+    "sourceUrl": "https://www.mkvhub.horse"
   },
   {
     "display_name": "animica",
