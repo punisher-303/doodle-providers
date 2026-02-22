@@ -107,7 +107,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://imvegamovies.com"
+    "sourceUrl": "https://imvegamovies.cv"
   },
   {
     "display_name": "MultiMovies",
@@ -207,7 +207,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://new3.hdhub4u.fo"
+    "sourceUrl": "https://new4.hdhub4u.fo"
   },
   {
     "display_name": "ShowBox",
@@ -587,7 +587,7 @@
     "type": "global",
     "category": "movie/tv",
     "disabled": false,
-    "sourceUrl": "https://imvegamovies.com"
+    "sourceUrl": "https://imvegamovies.cv"
   },
   {
     "display_name": "Bollyflix",
