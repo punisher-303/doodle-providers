@@ -2,7 +2,7 @@
   {
     "display_name": "DoodleMovies",
     "value": "vega",
-    "version": "4.6",
+    "version": "4.7",
     "icon": "https://vegamovies.careers/templates/vegamovies/images/v-l.png",
     "type": "global",
     "category": "movie/tv",
@@ -322,7 +322,7 @@
   {
     "display_name": "Zeefliz",
     "value": "zeefliz",
-    "version": "2.9",
+    "version": "3.0",
     "icon": "https://zeefliz.lat/wp-content/uploads/2025/11/cropped-zeefliz-logo-270x270.jpg",
     "type": "global",
     "category": "movie/tv",

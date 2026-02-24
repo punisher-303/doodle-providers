@@ -1,1 +1,67 @@
-"use strict";var __awaiter=this&&this.__awaiter||function(thisArg,_arguments,P,generator){return new(P||(P=Promise))(function(resolve,reject){function fulfilled(value){try{step(generator.next(value))}catch(e){reject(e)}}function rejected(value){try{step(generator.throw(value))}catch(e){reject(e)}}function step(result){var value;result.done?resolve(result.value):(value=result.value,value instanceof P?value:new P(function(resolve){resolve(value)})).then(fulfilled,rejected)}step((generator=generator.apply(thisArg,_arguments||[])).next())})};Object.defineProperty(exports,"__esModule",{value:!0}),exports.getBaseUrl=void 0;const expireTime=36e5,getBaseUrl=providerValue=>__awaiter(void 0,void 0,void 0,function*(){try{let baseUrl="";const baseUrlRes=yield fetch("https://himanshu8443.github.io/providers/modflix.json");return baseUrl=(yield baseUrlRes.json())[providerValue].url,baseUrl}catch(error){return""}});exports.getBaseUrl=getBaseUrl;
+"use strict";
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var __async = (__this, __arguments, generator) => {
+  return new Promise((resolve, reject) => {
+    var fulfilled = (value) => {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var rejected = (value) => {
+      try {
+        step(generator.throw(value));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+    step((generator = generator.apply(__this, __arguments)).next());
+  });
+};
+
+// providers/getBaseUrl.ts
+var getBaseUrl_exports = {};
+__export(getBaseUrl_exports, {
+  getBaseUrl: () => getBaseUrl
+});
+module.exports = __toCommonJS(getBaseUrl_exports);
+var expireTime = 60 * 60 * 1e3;
+var getBaseUrl = /* @__PURE__ */ __name((providerValue) => __async(null, null, function* () {
+  try {
+    let baseUrl = "";
+    const cacheKey = "CacheBaseUrl" + providerValue;
+    const timeKey = "baseUrlTime" + providerValue;
+    const baseUrlRes = yield fetch(
+      "https://himanshu8443.github.io/providers/modflix.json"
+    );
+    const baseUrlData = yield baseUrlRes.json();
+    baseUrl = baseUrlData[providerValue].url;
+    return baseUrl;
+  } catch (error) {
+    console.error(`Error fetching baseUrl: ${providerValue}`, error);
+    return "";
+  }
+}), "getBaseUrl");
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  getBaseUrl
+});
