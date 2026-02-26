@@ -38,13 +38,7 @@ export async function getSearchPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  return fetchPosts({
-    filter: "",
-    page,
-    query: searchQuery,
-    signal,
-    providerContext,
-  });
+  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext });
 }
 
 // --- Core function ---
@@ -62,7 +56,7 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const baseUrl = await providerContext.getBaseUrl("zeefliz");
+    const baseUrl = "https://zeefliz.asia";
     let url: string;
 
     if (query && query.trim()) {
@@ -72,9 +66,7 @@ async function fetchPosts({
       url = `${baseUrl}/?${params.toString()}`;
     } else if (filter) {
       url = filter.startsWith("/")
-        ? `${baseUrl}${filter.replace(/\/$/, "")}${
-            page > 1 ? `/page/${page}` : ""
-          }`
+        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
         : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
     } else {
       url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
@@ -113,9 +105,9 @@ async function fetchPosts({
 
       // Image
       let img =
-        card.find("img").attr("data-src") ||
         card.find("img").attr("bv-data-src") ||
         card.find("img").attr("src") ||
+        card.find("img").attr("data-src") ||
         card.find("img").attr("data-original") ||
         "";
       const image = img ? resolveUrl(img) : "";
@@ -126,10 +118,7 @@ async function fetchPosts({
 
     return catalog.slice(0, 100);
   } catch (err) {
-    console.error(
-      "fetchPosts error:",
-      err instanceof Error ? err.message : String(err),
-    );
+    console.error("fetchPosts error:", err instanceof Error ? err.message : String(err));
     return [];
   }
 }

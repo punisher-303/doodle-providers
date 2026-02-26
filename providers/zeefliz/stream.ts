@@ -1,5 +1,4 @@
 import { ProviderContext, Stream } from "../types";
-import { hubcloudExtractor } from "../extractors/hubcloud";
 
 const headers = {
   Accept:
@@ -16,7 +15,8 @@ const headers = {
   "Sec-Fetch-Site": "none",
   "Sec-Fetch-User": "?1",
   Cookie:
-    "ext_name=ojplmecpdpgccookcobabopnaifgidhf; cf_clearance=nJQQ9ncb6m2Nc7HoxzuphPhnQgLzI6nBmzl2D.9oY4E-1759137994-1.2.1.1-pe7DiQHVsfZjnbHWTnaNbMiTYEuk.VvpPGaMeTtHOh7p9TKG5auBIDGDDW93devKuNcOlkhe6mk4v5OcsM0H_q3Te02eCPoTNgZsW8terjwvnQUebbbe8QKjMaVsVKgnbiAxS2ESM9aB3fbiQ9diuNT6ziY.2U4mPaJ0Y4vCu3404o5qBEw5c2psIuabKUTZviA2NJvN.lx5jAFQnB.HXeXJnUuCcbQac7G1BYBfdso",
+    "xla=s4t; _ga=GA1.1.1081149560.1756378968; _ga_BLZGKYN5PF=GS2.1.s1756378968$o1$g1$t1756378984$j44$l0$h0",
+  "Upgrade-Insecure-Requests": "1",
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
 };
@@ -32,24 +32,29 @@ export async function getStream({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }) {
-  const { axios, cheerio, commonHeaders } = providerContext;
+  const { axios, cheerio, extractors } = providerContext;
+  const { hubcloudExtracter } = extractors;
   try {
     const streamLinks: Stream[] = [];
     console.log("dotlink", link);
+    if (link.includes("zcloud") || link.includes("zeecloud") || link.includes("zee-cloud")) {
+      // Directly use hubcloud extractor
+      return await hubcloudExtracter(link, signal);
+    }
     if (type === "movie") {
       // vlink
       const dotlinkRes = await axios(`${link}`, { headers });
       const dotlinkText = dotlinkRes.data;
-      console.log("dotlinkText", dotlinkText);
+      // console.log('dotlinkText', dotlinkText);
       const vlink = dotlinkText.match(/<a\s+href="([^"]*cloud\.[^"]*)"/i) || [];
-      console.log("vLink", vlink[1]);
+      // console.log('vLink', vlink[1]);
       link = vlink[1];
 
       // filepress link
       try {
         const $ = cheerio.load(dotlinkText);
         const filepressLink = $(
-          '.btn.btn-sm.btn-outline[style="background:linear-gradient(135deg,rgb(252,185,0) 0%,rgb(0,0,0)); color: #fdf8f2;"]',
+          '.btn.btn-sm.btn-outline[style="background:linear-gradient(135deg,rgb(252,185,0) 0%,rgb(0,0,0)); color: #fdf8f2;"]'
         )
           .parent()
           .attr("href");
@@ -73,7 +78,7 @@ export async function getStream({
               "Content-Type": "application/json",
               Referer: filepressBaseUrl,
             },
-          },
+          }
         );
         // console.log('filepressTokenRes', filepressTokenRes.data);
         if (filepressTokenRes.data?.status) {
@@ -90,7 +95,7 @@ export async function getStream({
                 "Content-Type": "application/json",
                 Referer: filepressBaseUrl,
               },
-            },
+            }
           );
           // console.log('filepressStreamLink', filepressStreamLink.data);
           streamLinks.push({
@@ -105,7 +110,7 @@ export async function getStream({
       }
     }
 
-    return await hubcloudExtractor(link, signal, axios, cheerio, commonHeaders);
+    return await hubcloudExtracter(link, signal);
   } catch (error: any) {
     console.log("getStream error: ", error);
     if (error.message.includes("Aborted")) {
