@@ -55,6 +55,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   // 1. Handle if link is already a magnet (happens when called from Player for Torrent provider results)
   if (typeof link === 'string' && link.startsWith('magnet:')) {
     return [{
+      name: "Torrent Stream",
       server: "Torrent",
       link: link,
       type: "torrent",
