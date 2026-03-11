@@ -72,14 +72,16 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
     return [];
   }
 
-  const { imdbId, season, episode, title, showTitle, year } = payload;
+  const { imdbId, season, episode, title, showTitle, year, keyword } = payload;
 
-  if (!imdbId && !title && !showTitle) return [];
+  if (!imdbId && !title && !showTitle && !keyword) return [];
 
-  // Construct search queries (Primary: IMDB, Fallback: Title)
+  // Construct search queries (Primary: Manual Keyword, Secondary: IMDB, Fallback: Title)
   const queries: string[] = [];
   
-  if (season && episode) {
+  if (keyword) {
+    queries.push(keyword);
+  } else if (season && episode) {
     const s = season.toString().padStart(2, '0');
     const e = episode.toString().padStart(2, '0');
     queries.push(`${imdbId} S${s}E${e}`);
