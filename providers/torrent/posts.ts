@@ -1,6 +1,6 @@
 import { Post, ProviderContext } from "../types";
 
-const PROVIDER_NAME = "Torrent";
+const PROVIDER_NAME = "torrent";
 
 const TMDB_API_KEY = "9d2bff12ed955c7f1f74b83187f188ae";
 
