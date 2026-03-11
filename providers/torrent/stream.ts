@@ -101,7 +101,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         try {
             const results = await fn(q);
             streams.push(...results);
-        } catch (e) {
+        } catch (e: any) {
             console.error(`Scraper ${name} failed for query ${q}:`, e.message);
         }
     });
@@ -144,7 +144,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             streams.push(...results);
           }
         }
-      } catch (e) { console.error("Torrentio failed:", e.message); }
+      } catch (e: any) { console.error("Torrentio failed:", e.message); }
     })(),
 
     // 1. TorrentGalaxy (Fallback Scraper)
@@ -191,7 +191,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             }));
             streams.push(...results);
           }
-      } catch (e) { console.error("YTS failed:", e.message); }
+      } catch (e: any) { console.error("YTS failed:", e.message); }
     })(),
 
     // 3. BitSearch (Fallback Scraper)
