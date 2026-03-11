@@ -157,7 +157,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             }
         });
         return results;
-    })
+    }),
     // 0. Torrentio (The Gold Standard - Aggregated Search)
     (async () => {
       try {
