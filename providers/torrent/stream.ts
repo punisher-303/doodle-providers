@@ -52,16 +52,28 @@ function detectQuality(name: string): string {
 }
 
 export const getStream = async ({ link, type, signal, providerContext }: { link: string, type: string, signal: AbortSignal, providerContext: ProviderContext }): Promise<Stream[]> => {
-  // 1. Handle if link is already a magnet
-  if (typeof link === 'string' && link.startsWith('magnet:')) {
-    return [{
-      name: "Torrent Stream",
-      server: "Torrent",
-      link: link,
-      type: "torrent",
-      quality: "1080" as any,
-      isDebrid: true,
-    }];
+  // 1. Handle if link is already a magnet or direct HTTP link
+  if (typeof link === 'string') {
+    if (link.startsWith('magnet:')) {
+      return [{
+        name: "Torrent Stream",
+        server: "Torrent",
+        link: link,
+        type: "torrent",
+        quality: "1080" as any,
+        isDebrid: true,
+      }];
+    }
+    if (link.startsWith('http')) {
+       return [{
+        name: "Resolved Stream",
+        server: "Direct",
+        link: link,
+        type: "mp4",
+        quality: "1080" as any,
+        isResolved: true,
+      }];
+    }
   }
 
   let payload: any;
@@ -109,6 +121,43 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   };
 
   const tasks = [
+    // 5. Knaben (PlayTorrio's Primary Source)
+    runScraper("Knaben", async (q) => {
+        // Knaben format: https://knaben.org/search/<query>/0/1/seeders
+        const url = `https://knaben.org/search/${encodeURIComponent(q)}/0/1/seeders`;
+        const res = await providerContext.axios.get(url, { 
+            signal, 
+            timeout: 8000, 
+            headers: { 'User-Agent': 'Mozilla/5.0' } 
+        });
+        const $ = providerContext.cheerio.load(res.data);
+        const results: Stream[] = [];
+        
+        // Results are in <tr> rows inside a <table>
+        $("table tr").each((_, el) => {
+            const magnetLink = $(el).find('a[href^="magnet:"]');
+            const magnet = magnetLink.attr("href");
+            
+            if (magnet) {
+                // Must get full title from 'title' attribute if available
+                const n = magnetLink.attr("title") || magnetLink.text().trim();
+                const s = $(el).find("td").eq(2).text().trim(); // Size
+                const sd = $(el).find("td").eq(4).text().trim(); // Seeders
+                const source = $(el).find("td").eq(6).find("a").text().trim() || "Knaben";
+                const qlt = detectQuality(n);
+                
+                results.push({
+                    name: n,
+                    server: `Knaben | ${qlt || 'HD'} | ${detectAudioTags(n).join(", ")} | ${s} | ${sd}S | ${source}`,
+                    link: magnet,
+                    type: "torrent",
+                    quality: qlt as any,
+                    isDebrid: true
+                });
+            }
+        });
+        return results;
+    })
     // 0. Torrentio (The Gold Standard - Aggregated Search)
     (async () => {
       try {
@@ -257,7 +306,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             }
         }
         return results;
-    })
+    }),
   ];
 
   await Promise.allSettled(tasks);
