@@ -42,11 +42,14 @@ class ProviderBuilder {
    * Clean the dist directory
    */
   cleanDist() {
-    if (fs.existsSync(DIST_DIR)) {
-      fs.rmSync(DIST_DIR, { recursive: true, force: true });
+    const torrentDist = path.join(DIST_DIR, "Torrent");
+    if (fs.existsSync(torrentDist)) {
+      fs.rmSync(torrentDist, { recursive: true, force: true });
     }
-    fs.mkdirSync(DIST_DIR, { recursive: true });
-    // log.success("Cleaned dist directory");
+    if (!fs.existsSync(DIST_DIR)) {
+      fs.mkdirSync(DIST_DIR, { recursive: true });
+    }
+    log.info("Cleaned Torrent dist directory");
   }
 
   /**
@@ -146,7 +149,7 @@ class ProviderBuilder {
       return files;
     };
 
-    const jsFiles = findJsFiles(DIST_DIR);
+    const jsFiles = findJsFiles(path.join(DIST_DIR, "Torrent"));
     let minifiedCount = 0;
     let totalSizeBefore = 0;
     let totalSizeAfter = 0;
