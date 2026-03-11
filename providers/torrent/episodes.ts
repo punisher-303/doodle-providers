@@ -4,7 +4,8 @@ export const getEpisodes = async ({ url, providerContext }: { url: string, provi
   const payload = JSON.parse(url);
   const { tmdbId, season, imdbId } = payload;
 
-  const seasonUrl = `https://api.themoviedb.org/3/tv/${tmdbId}/season/${season}?api_key=5242517248386a3458476839356d2572`;
+  const TMDB_API_KEY = "9d2bff12ed955c7f1f74b83187f188ae";
+  const seasonUrl = `https://api.themoviedb.org/3/tv/${tmdbId}/season/${season}?api_key=${TMDB_API_KEY}`;
 
   try {
     const res = await providerContext.axios.get(seasonUrl);
