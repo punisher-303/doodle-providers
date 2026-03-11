@@ -1,7 +1,7 @@
 [
   {
     "display_name": "Torrent",
-    "value": "Torrent",
+    "value": "torrent",
     "version": "1.0",
     "icon": "https://torrentgalaxy.to/common/images/logo.png",
     "type": "global",
