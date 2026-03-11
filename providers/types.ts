@@ -24,6 +24,7 @@ export type TextTracks = {
 
 // getStream
 export interface Stream {
+  name: string;
   server: string;
   link: string;
   type: string;
@@ -31,6 +32,7 @@ export interface Stream {
   subtitles?: TextTracks;
   headers?: any;
   isDebrid?: boolean;
+  isResolved?: boolean;
 }
 
 // getInfo
