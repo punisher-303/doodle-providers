@@ -1,11 +1,1 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.genres = exports.catalog = void 0;
-exports.catalog = [
-    { title: "Trending Today", filter: "trending" },
-    { title: "Popular Movies", filter: "popular_movies" },
-    { title: "Popular TV Shows", filter: "popular_tv" },
-    { title: "Top Rated Movies", filter: "top_rated_movies" },
-    { title: "Upcoming Movies", filter: "upcoming" },
-];
-exports.genres = [];
+"use strict";Object.defineProperty(exports,"__esModule",{value:!0}),exports.genres=exports.catalog=void 0,exports.catalog=[{title:"Trending Today",filter:"trending"},{title:"Popular Movies",filter:"popular_movies"},{title:"Now Playing",filter:"now_playing"},{title:"Popular TV Shows",filter:"popular_tv"},{title:"Airing Today",filter:"airing_today"},{title:"Top Rated Movies",filter:"top_rated_movies"},{title:"Upcoming Movies",filter:"upcoming"},{title:"Popular People",filter:"popular_people"}],exports.genres=[];
