@@ -13,21 +13,40 @@ const PROVIDER_NAME = "Torrent";
 function detectAudioTags(name: string): string[] {
   const n = name.toUpperCase();
   const found: string[] = [];
+
   if (n.includes("ATMOS")) found.push("Atmos");
   if (n.includes("TRUEHD")) found.push("TrueHD");
   if (n.includes("DTS:X") || n.includes("DTSX")) found.push("DTS:X");
   if (!found.includes("DTS:X") && (n.includes("DTS-HD") || n.includes("DTSHD")))
     found.push("DTS-HD");
-  if (n.includes("DTS")) {
-    if (!found.some((t) => t.startsWith("DTS"))) found.push("DTS");
-  }
-  if (n.includes("DD+") || n.includes("EAC3") || n.includes("DDP"))
+  if (
+    !found.includes("DTS:X") &&
+    !found.includes("DTS-HD") &&
+    n.includes("DTS")
+  )
+    found.push("DTS");
+  if (
+    n.includes("DD+") ||
+    n.includes("EAC3") ||
+    n.includes("E-AC-3") ||
+    n.includes("DDPLUS") ||
+    n.includes("DDP")
+  )
     found.push("DD+");
-  if (!found.includes("DD+") && (n.includes("DD") || n.includes("AC3")))
+  if (
+    !found.includes("DD+") &&
+    (n.includes(" DD ") ||
+      n.includes("AC3") ||
+      n.includes("DOLBY DIGITAL") ||
+      n.includes(".DD.") ||
+      n.includes("_DD_"))
+  )
     found.push("DD");
-  if (n.includes("7.1")) found.push("7.1");
-  if (n.includes("5.1")) found.push("5.1");
   if (n.includes("AAC")) found.push("AAC");
+  if (n.includes("7.1")) found.push("7.1");
+  if (!found.includes("7.1") && n.includes("5.1")) found.push("5.1");
+  if (n.includes(" 2.0") || n.includes(".2.0")) found.push("2.0");
+
   return found;
 }
 
