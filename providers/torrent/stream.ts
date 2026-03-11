@@ -77,7 +77,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
 
   const streams: Stream[] = [];
   
-  // 1. Construct prioritized queries
+  // 1. Construct prioritized queries for trackers
   const querySet = new Set<string>();
   if (keyword) {
     querySet.add(keyword);
@@ -87,26 +87,29 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
     if (showTitle) querySet.add(`${showTitle} S${s}E${e}`);
     if (imdbId) querySet.add(`${imdbId} S${s}E${e}`);
   } else {
+    // For Movies: Try IMDB ID, then Title + Year, then Title
     if (imdbId) querySet.add(imdbId);
     if (title && year) querySet.add(`${title} ${year}`);
     if (title) querySet.add(title);
   }
   const queries = Array.from(querySet);
 
-  // Helper for parallel execution
+  // Helper for parallel execution of all queries across all scrapers
   const runScraper = async (name: string, fn: (q: string) => Promise<Stream[]>) => {
-    // For scrapers that use the search keyword
-    const q = queries[0] || ""; 
-    try {
-      const results = await fn(q);
-      streams.push(...results);
-    } catch (e) {
-      console.error(`Scraper ${name} failed:`, e);
-    }
+    // Run all queries in parallel for this scraper
+    const scraperTasks = queries.map(async (q) => {
+        try {
+            const results = await fn(q);
+            streams.push(...results);
+        } catch (e) {
+            console.error(`Scraper ${name} failed for query ${q}:`, e.message);
+        }
+    });
+    await Promise.allSettled(scraperTasks);
   };
 
   const tasks = [
-    // 0. Torrentio (The Gold Standard - instant JSON results)
+    // 0. Torrentio (The Gold Standard - Aggregated Search)
     (async () => {
       try {
         let torrentioUrl = "";
@@ -117,7 +120,11 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         }
 
         if (torrentioUrl) {
-          const res = await providerContext.axios.get(torrentioUrl, { signal, timeout: 5000 });
+          const res = await providerContext.axios.get(torrentioUrl, { 
+            signal, 
+            timeout: 8000,
+            headers: { 'User-Agent': 'Mozilla/5.0' } 
+          });
           if (res.data?.streams) {
             const results = res.data.streams.map((s: any) => {
                 const nameMatch = s.title.split("\n");
@@ -127,7 +134,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
                 
                 return {
                     name: torrentName,
-                    server: `Torrentio | ${qlt || 'HD'} | ${detectAudioTags(s.title).join(", ")} | ${details}`,
+                    server: `Torrio | ${qlt || 'HD'} | ${detectAudioTags(s.title).join(", ")} | ${details}`,
                     link: s.infoHash ? `magnet:?xt=urn:btih:${s.infoHash}&dn=${encodeURIComponent(torrentName)}` : s.url,
                     type: "torrent",
                     quality: qlt as any,
@@ -137,12 +144,10 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             streams.push(...results);
           }
         }
-      } catch (e) {
-        console.error("Torrentio failed:", e);
-      }
+      } catch (e) { console.error("Torrentio failed:", e.message); }
     })(),
 
-    // 1. TorrentGalaxy (Fallback)
+    // 1. TorrentGalaxy (Fallback Scraper)
     runScraper("TGx", async (q) => {
       const url = `https://torrentgalaxy.to/torrents.php?search=${encodeURIComponent(q)}&sort=seeders&order=desc`;
       const res = await providerContext.axios.get(url, { signal, timeout: 6000 });
@@ -169,7 +174,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
       return results;
     }),
 
-    // 2. YTS (Fallback - Movies only)
+    // 2. YTS (Fallback Scraper - Movies)
     (async () => {
       if (type !== 'movie' || !imdbId) return;
       try {
@@ -186,10 +191,10 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             }));
             streams.push(...results);
           }
-      } catch (e) { console.error("YTS failed:", e); }
+      } catch (e) { console.error("YTS failed:", e.message); }
     })(),
 
-    // 3. BitSearch (Fallback)
+    // 3. BitSearch (Fallback Scraper)
     runScraper("BitSearch", async (q) => {
       const url = `https://bitsearch.to/search?q=${encodeURIComponent(q)}&sort=seeders`;
       const res = await providerContext.axios.get(url, { signal, timeout: 5000 });
@@ -214,6 +219,44 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         }
       });
       return results;
+    }),
+
+    // 4. 1337x (Fallback Scraper - Top Results only)
+    runScraper("1337x", async (q) => {
+        // Use a more relaxed search for 1337x
+        const searchQ = q.includes('tt') ? q : q.replace(/[^a-zA-Z0-9 ]/g, ' ').substring(0, 50);
+        const url = `https://1337x.to/search/${encodeURIComponent(searchQ)}/1/`;
+        const res = await providerContext.axios.get(url, { signal, timeout: 8000 });
+        const $ = providerContext.cheerio.load(res.data);
+        const results: Stream[] = [];
+        
+        const rows = $("table.table-list tbody tr").slice(0, 5); // Limit to top 5 for speed
+        for (const el of rows) {
+            const titleEl = $(el).find("td.name a").eq(1);
+            const detailLink = titleEl.attr("href");
+            if (detailLink) {
+                try {
+                    const detailRes = await providerContext.axios.get(`https://1337x.to${detailLink}`, { signal, timeout: 5000 });
+                    const $$ = providerContext.cheerio.load(detailRes.data);
+                    const magnet = $$('a[href^="magnet:"]').attr("href");
+                    if (magnet) {
+                        const n = titleEl.text().trim();
+                        const s = $(el).find("td.size").clone().children().remove().end().text().trim();
+                        const sd = $(el).find("td.seeds").text().trim();
+                        const qlt = detectQuality(n);
+                        results.push({
+                            name: n,
+                            server: `1337x | ${qlt || 'HD'} | ${detectAudioTags(n).join(", ")} | ${s} | ${sd}S`,
+                            link: magnet,
+                            type: "torrent",
+                            quality: qlt as any,
+                            isDebrid: true
+                        });
+                    }
+                } catch (e) { /* skip */ }
+            }
+        }
+        return results;
     })
   ];
 
@@ -223,20 +266,22 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   const seen = new Set();
   const finalStreams = streams.filter(s => {
     const hashMatch = s.link.match(/btih:([a-fA-F0-9]+)/);
-    const hash = hashMatch ? hashMatch[1].toLowerCase() : s.link;
+    const hash = hashMatch ? hashMatch[1].toLowerCase() : s.link.toLowerCase();
     if (seen.has(hash)) return false;
     seen.add(hash);
     return true;
   });
 
-  // Final Sort: Most Seeders / Torrentio results first
+  // Final Sort: Torrio results first, then Seeders
   return finalStreams.sort((a, b) => {
-      if (a.server.includes("Torrentio") && !b.server.includes("Torrentio")) return -1;
-      if (b.server.includes("Torrentio") && !a.server.includes("Torrentio")) return 1;
+      if (a.server.includes("Torrio") && !b.server.includes("Torrio")) return -1;
+      if (b.server.includes("Torrio") && !a.server.includes("Torrio")) return 1;
       
       const getSeeders = (s: string) => {
         const match = s.match(/(\d+)S/);
-        return match ? parseInt(match[1]) : 0;
+        if (match) return parseInt(match[1]);
+        const emojiMatch = s.match(/👤 (\d+)/);
+        return emojiMatch ? parseInt(emojiMatch[1]) : 0;
       };
       return getSeeders(b.server) - getSeeders(a.server);
   });

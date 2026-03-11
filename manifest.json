@@ -2,7 +2,7 @@
   {
     "display_name": "Torrent",
     "value": "torrent",
-    "version": "9.0",
+    "version": "10.0",
     "icon": "https://torrentgalaxy.to/common/images/logo.png",
     "type": "global",
     "category": "movie/tvshow",
