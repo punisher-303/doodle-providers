@@ -118,6 +118,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             ].filter(s => s).join(" | ");
 
             streams.push({
+              name: name,
               server: serverInfo,
               link: magnet,
               type: "torrent",
