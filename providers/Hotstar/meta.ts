@@ -1,41 +1,31 @@
 import { Info, ProviderContext } from "../types";
 
-const MAIN_URL = "https://net20.cc";
-const API_BASE = `${MAIN_URL}/mobile/hs`;
+const MAIN_URL = "https://net52.cc";
+const UA = "Mozilla/5.0 (Linux; Android 13; Pixel 5 Build/TQ3A.230901.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/144.0.7559.132 Safari/537.36 /OS.Gatu v3.0";
 
-const USER_AGENT =
-  "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36";
-
-const USER_TOKEN = "233123f803cf02184bf6c67e149cdd50";
-
-const BASE_HEADERS = {
-  "User-Agent": USER_AGENT,
-  "X-Requested-With": "XMLHttpRequest",
-  Referer: `${MAIN_URL}/home`,
-  Cookie: `ott=hs; hd=on; user_token=${USER_TOKEN};`,
-};
-
-/**
- * 🔐 BYPASS → get t_hash_t
- * SAME AS KOTLIN bypass(mainUrl)
- */
 async function getBypassCookie(axios: any): Promise<string> {
-  try {
-    const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
-      headers: BASE_HEADERS,
-    });
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
+        headers: {
+          "User-Agent": UA,
+          "X-Requested-With": "XMLHttpRequest",
+          "Referer": `${MAIN_URL}/home`,
+        },
+      });
 
-    const setCookie = res.headers["set-cookie"];
-    if (setCookie) {
-      const raw = Array.isArray(setCookie)
-        ? setCookie.join(";")
-        : setCookie;
-
-      const match = raw.match(/t_hash_t=[^;]+/);
-      if (match) return match[0];
+      const dataStr = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+      if (dataStr.includes('"r":"n"')) {
+        const sc = res.headers["set-cookie"];
+        if (sc) {
+          const raw = Array.isArray(sc) ? sc.join(";") : sc;
+          const match = raw.match(/t_hash_t=([^;]+)/);
+          if (match) return match[1];
+        }
+      }
+    } catch (e) {
+      // Ignore errors during retry loop
     }
-  } catch (e) {
-    console.error("HS bypass error:", e);
   }
   return "";
 }
@@ -48,93 +38,62 @@ export async function getMeta({
   providerContext: ProviderContext;
 }): Promise<Info> {
   const { axios } = providerContext;
-  const id = link;
   const unixTime = Math.floor(Date.now() / 1000);
+  const hash = await getBypassCookie(axios);
 
-  const tHash = await getBypassCookie(axios);
-
-  const headers = {
-    ...BASE_HEADERS,
-    Cookie: `${BASE_HEADERS.Cookie} ${tHash}`,
-  };
+  const url = `${MAIN_URL}/mobile/hs/post.php?id=${link}&t=${unixTime}`;
 
   try {
-    /**
-     * 🎯 POST DATA (Kotlin equivalent)
-     */
-    const res = await axios.get(
-      `${API_BASE}/post.php?id=${id}&t=${unixTime}`,
-      { headers }
-    );
+    const res = await axios.get(url, {
+      headers: {
+        "User-Agent": UA,
+        "X-Requested-With": "XMLHttpRequest",
+        "Referer": `${MAIN_URL}/home`,
+        "Cookie": `t_hash_t=${hash}; ott=hs; hd=on`,
+      },
+    });
 
     const data = res.data;
-
-    const title = data?.title || "";
-    const desc = data?.desc || "";
-    const image = `https://imgcdn.kim/hs/v/${id}.jpg`;
-
-    const hasEpisodes =
+    const isSeries =
       Array.isArray(data?.episodes) &&
       data.episodes.length > 0 &&
       data.episodes[0] !== null;
 
     const info: Info = {
-      title,
-      synopsis: desc,
-      image,
+      title: data.title || "",
+      synopsis: data.desc || "",
+      image: `https://imgcdn.kim/hs/v/${link}.jpg`,
       imdbId: "",
-      type: hasEpisodes ? "series" : "movie",
+      type: isSeries ? "series" : "movie",
       linkList: [],
     };
 
-    /**
-     * 🎬 MOVIE → DIRECT PLAY
-     */
-    if (!hasEpisodes) {
+    if (!isSeries) {
       info.linkList.push({
         title: "▶ Play Movie",
         quality: "HD",
         episodesLink: "",
-        directLinks: [
-          {
-            title: "Default Server",
-            link: `${id}|${title}`,
-          },
-        ],
+        directLinks: [{ title: "Server 1", link: `${link}|${data.title}` }],
       });
       return info;
     }
 
-    /**
-     * 📺 SERIES → SEASONS
-     * 🔥 FIX: Season text uses INDEX, not seasonId
-     */
-    const seasons = Array.isArray(data?.season) ? data.season : [];
-
+    const seasons = Array.isArray(data.season) ? data.season : [];
     seasons.forEach((s: any, index: number) => {
       const seasonId = s?.id ?? `${index + 1}`;
-      const seasonNumber = index + 1; // ✅ UI SAFE
+      const seasonNumber = index + 1;
 
       info.linkList.push({
-        title: `Season ${seasonNumber}`, // ✅ CLEAN UI
+        title: `Season ${seasonNumber}`,
         quality: "Default",
-
-        // 🔑 backend uses real seasonId
-        episodesLink: `${id}|${seasonId}|${title}|series`,
+        episodesLink: `${link}|${seasonId}|${data.title}`,
         directLinks: [],
       });
     });
 
     return info;
   } catch (e) {
-    console.error("Hotstar meta error:", e);
-    return {
-      title: "",
-      synopsis: "",
-      image: "",
-      imdbId: "",
-      type: "movie",
-      linkList: [],
-    };
+    console.error("Hotstar getMeta error:", e);
+    throw e;
   }
 }

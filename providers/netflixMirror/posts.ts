@@ -1,15 +1,42 @@
 import { Post, ProviderContext } from "../types";
 
-const MAIN_URL = "https://net20.cc";
+const MAIN_URL = "https://net52.cc"; // Unified Domain
 
-// Cookies from Kotlin: ott=nf, hd=on, user_token=..., t_hash_t (dynamic/bypass)
-const headers = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+
+const baseHeaders = {
+  "User-Agent": USER_AGENT,
   "X-Requested-With": "XMLHttpRequest",
-  Cookie: "ott=nf; hd=on; user_token=233123f803cf02184bf6c67e149cdd50; t_hash_t=",
-  Referer: `${MAIN_URL}/`,
+  Referer: `${MAIN_URL}/tv/home`,
+  Cookie: "ott=nf; hd=on; user_token=233123f803cf02184bf6c67e149cdd50;",
 };
+
+/**
+ * 🔐 Netflix bypass → t_hash_t
+ */
+async function getBypassCookie(axios: any): Promise<string> {
+  try {
+    for (let i = 0; i < 5; i++) {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
+        headers: baseHeaders,
+      });
+
+      const dataStr = JSON.stringify(res.data);
+      if (dataStr && dataStr.includes('"r":"n"')) {
+        const setCookie = res.headers["set-cookie"];
+        if (setCookie) {
+          const raw = Array.isArray(setCookie) ? setCookie.join(";") : setCookie;
+          const match = raw.match(/t_hash_t=[^;]+/);
+          if (match) return match[0];
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Netflix bypass error:", e);
+  }
+  return "";
+}
 
 export async function getPosts({
   filter,
@@ -29,29 +56,26 @@ export async function getPosts({
     case "top10":
       query = "top 10";
       break;
-
     case "movies":
       query = "movie";
       break;
-
     case "tv":
       query = "season";
       break;
-
     case "home":
     default:
-      query = ""; // mixed / latest
+      query = "";
       break;
   }
 
-  const url = `${MAIN_URL}/search.php?s=${encodeURIComponent(
-    query
-  )}&t=${unixTime}`;
-
+  // 1️⃣ Get bypass cookie
+  const tHash = await getBypassCookie(axios);
   const searchHeaders = {
-    ...headers,
-    Referer: `${MAIN_URL}/tv/home`,
+    ...baseHeaders,
+    Cookie: `${baseHeaders.Cookie} ${tHash}`,
   };
+
+  const url = `${MAIN_URL}/search.php?s=${encodeURIComponent(query)}&t=${unixTime}`;
 
   try {
     const res = await axios.get(url, { headers: searchHeaders });
@@ -78,11 +102,15 @@ export async function getSearchPosts({
 }): Promise<Post[]> {
   const { axios } = providerContext;
   const unixTime = Math.floor(Date.now() / 1000);
-  
-  // Kotlin: "$mainUrl/search.php?s=$query&t=${APIHolder.unixTime}"
-  // Referer: "$mainUrl/tv/home"
+
+  // 1️⃣ Get bypass cookie
+  const tHash = await getBypassCookie(axios);
+  const searchHeaders = {
+    ...baseHeaders,
+    Cookie: `${baseHeaders.Cookie} ${tHash}`,
+  };
+
   const url = `${MAIN_URL}/search.php?s=${encodeURIComponent(searchQuery)}&t=${unixTime}`;
-  const searchHeaders = { ...headers, Referer: `${MAIN_URL}/tv/home` };
 
   try {
     const res = await axios.get(url, { headers: searchHeaders });
@@ -91,7 +119,6 @@ export async function getSearchPosts({
 
     return results.map((item: any) => ({
       title: item.t || "",
-      // Kotlin: "https://imgcdn.kim/poster/v/${it.id}.jpg"
       image: `https://imgcdn.kim/poster/v/${item.id}.jpg`,
       link: item.id,
     }));

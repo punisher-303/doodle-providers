@@ -1,14 +1,5 @@
 export const catalog = [
-  {
-    title: "Home",
-    filter: "home",
-  },
-  {
-    title: "Movies",
-    filter: "movies",
-  },
-  {
-    title: "TV Shows",
-    filter: "tv",
-  },
+  { title: "Home", filter: "home" },
+  { title: "Movies", filter: "movie" },
+  { title: "TV Shows", filter: "season" },
 ];

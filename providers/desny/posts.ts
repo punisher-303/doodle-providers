@@ -1,38 +1,45 @@
 import { Post, ProviderContext } from "../types";
 
-const MAIN_URL = "https://net20.cc";
+const MAIN_URL = "https://net52.cc"; // Updated domain
 
 const UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Linux; Android 13; Pixel 5 Build/TQ3A.230901.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/144.0.7559.132 Safari/537.36 /OS.Gatu v3.0";
+
+const BASE_HEADERS = {
+  "User-Agent": UA,
+  "X-Requested-With": "XMLHttpRequest",
+};
 
 /**
- * Get t_hash_t cookie
+ * 🔐 Disney Bypass → t_hash_t
  */
 async function getBypassCookie(axios: any): Promise<string> {
   try {
-    const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
-      headers: {
-        "User-Agent": UA,
-        "X-Requested-With": "XMLHttpRequest",
-        Referer: `${MAIN_URL}/`,
-        Cookie: "ott=dp; hd=on;",
-      },
-    });
+    for (let i = 0; i < 5; i++) {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
+        headers: {
+          ...BASE_HEADERS,
+          Referer: `${MAIN_URL}/`,
+          Cookie: "ott=dp; hd=on;",
+        },
+      });
 
-    const sc = res.headers["set-cookie"];
-    if (sc) {
-      const raw = Array.isArray(sc) ? sc.join(";") : sc;
-      const match = raw.match(/t_hash_t=[^;]+/);
-      if (match) return match[0];
+      const dataStr = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+      if (dataStr && dataStr.includes('"r":"n"')) {
+        const setCookie = res.headers["set-cookie"];
+        if (setCookie) {
+          const raw = Array.isArray(setCookie) ? setCookie.join(";") : setCookie;
+          const match = raw.match(/t_hash_t=[^;]+/);
+          if (match) return match[0];
+        }
+      }
     }
-  } catch {}
-
+  } catch (e) {
+    console.error("Disney bypass error:", e);
+  }
   return "";
 }
 
-/**
- * MAP CATALOG → SEARCH KEYWORD
- */
 function mapFilterToQuery(filter: string): string {
   switch (filter) {
     case "movie":
@@ -41,14 +48,12 @@ function mapFilterToQuery(filter: string): string {
       return "series";
     case "10":
       return "10";
+    case "home":
     default:
-      return "h";
+      return "";
   }
 }
 
-/**
- * POSTS (HOME + CATALOG)
- */
 export async function getPosts({
   filter,
   providerContext,
@@ -58,38 +63,34 @@ export async function getPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   const { axios } = providerContext;
-  const t = Math.floor(Date.now() / 1000);
+  const unixTime = Math.floor(Date.now() / 1000);
 
   const tHash = await getBypassCookie(axios);
-  if (!tHash) return [];
-
   const query = mapFilterToQuery(filter);
 
-  const res = await axios.get(`${MAIN_URL}/mobile/hs/search.php`, {
-    params: {
-      s: query,
-      t,
-    },
-    headers: {
-      "User-Agent": UA,
-      "X-Requested-With": "XMLHttpRequest",
-      Referer: `${MAIN_URL}/home`,
-      Cookie: `${tHash}; ott=dp; hd=on`,
-    },
-  });
+  try {
+    const res = await axios.get(`${MAIN_URL}/mobile/hs/search.php`, {
+      params: { s: query, t: unixTime },
+      headers: {
+        ...BASE_HEADERS,
+        Referer: `${MAIN_URL}/home`,
+        Cookie: `${tHash}; ott=dp; hd=on;`,
+      },
+    });
 
-  if (!res.data?.searchResult) return [];
+    if (!res.data?.searchResult) return [];
 
-  return res.data.searchResult.map((it: any) => ({
-    title: it.t,
-    link: it.id,
-    image: `https://imgcdn.kim/hs/v/${it.id}.jpg`,
-  }));
+    return res.data.searchResult.map((it: any) => ({
+      title: it.t || "Movie / Show",
+      link: it.id,
+      image: `https://imgcdn.kim/hs/v/${it.id}.jpg`,
+    }));
+  } catch (e) {
+    console.error("Disney posts error:", e);
+    return [];
+  }
 }
 
-/**
- * SEARCH (USER SEARCH)
- */
 export async function getSearchPosts({
   searchQuery,
   providerContext,
@@ -99,29 +100,29 @@ export async function getSearchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   const { axios } = providerContext;
-  const t = Math.floor(Date.now() / 1000);
+  const unixTime = Math.floor(Date.now() / 1000);
 
   const tHash = await getBypassCookie(axios);
-  if (!tHash) return [];
 
-  const res = await axios.get(`${MAIN_URL}/mobile/hs/search.php`, {
-    params: {
-      s: searchQuery,
-      t,
-    },
-    headers: {
-      "User-Agent": UA,
-      "X-Requested-With": "XMLHttpRequest",
-      Referer: `${MAIN_URL}/home`,
-      Cookie: `${tHash}; ott=dp; hd=on`,
-    },
-  });
+  try {
+    const res = await axios.get(`${MAIN_URL}/mobile/hs/search.php`, {
+      params: { s: searchQuery, t: unixTime },
+      headers: {
+        ...BASE_HEADERS,
+        Referer: `${MAIN_URL}/home`,
+        Cookie: `${tHash}; ott=dp; hd=on;`,
+      },
+    });
 
-  if (!res.data?.searchResult) return [];
+    if (!res.data?.searchResult) return [];
 
-  return res.data.searchResult.map((it: any) => ({
-    title: it.t,
-    link: it.id,
-    image: `https://imgcdn.kim/hs/v/${it.id}.jpg`,
-  }));
+    return res.data.searchResult.map((it: any) => ({
+      title: it.t || "",
+      link: it.id,
+      image: `https://imgcdn.kim/hs/v/${it.id}.jpg`,
+    }));
+  } catch (e) {
+    console.error("Disney search error:", e);
+    return [];
+  }
 }

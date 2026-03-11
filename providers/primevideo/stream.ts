@@ -1,40 +1,43 @@
-import { Stream, ProviderContext } from "../types";
+import { Stream, ProviderContext, TextTracks } from "../types";
 
-const MAIN_URL = "https://net20.cc";
-const STREAM_URL = "https://net51.cc";
+const MAIN_URL = "https://net52.cc";
 
-const USER_TOKEN = "233123f803cf02184bf6c67e149cdd50";
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
-const UA =
-  "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36";
+const BASE_HEADERS = {
+  "User-Agent": USER_AGENT,
+  "X-Requested-With": "XMLHttpRequest",
+  Referer: `${MAIN_URL}/home`,
+};
 
-/**
- * PRIMEVIDEO BYPASS (t_hash_t)
- * SAME AS KOTLIN bypass(mainUrl)
- */
 async function getBypassCookie(axios: any): Promise<string> {
-  try {
-    const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
-      headers: {
-        "User-Agent": UA,
-        "X-Requested-With": "XMLHttpRequest",
-        Referer: `${MAIN_URL}/`,
-        Cookie: `ott=pv; hd=on; user_token=${USER_TOKEN};`,
-      },
-    });
+  let attempt = 0;
+  while (attempt < 10) {
+    try {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
+        headers: BASE_HEADERS,
+      });
 
-    const sc = res.headers["set-cookie"];
-    if (sc) {
-      const raw = Array.isArray(sc) ? sc.join(";") : sc;
-      const match = raw.match(/t_hash_t=[^;]+/);
-      if (match) return match[0];
+      const dataStr = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+
+      if (dataStr.includes('"r":"n"')) {
+        const cookies = res.headers["set-cookie"];
+        if (cookies) {
+          const all = Array.isArray(cookies) ? cookies.join(";") : cookies;
+          const match = all.match(/t_hash_t=([^;]+)/);
+          if (match) return match[1];
+        }
+      }
+    } catch (error) {
+      console.error("PV Bypass Error:", error);
     }
-  } catch {}
-
+    attempt++;
+  }
   return "";
 }
 
-export async function getStream({
+export const getStream = async function ({
   link,
   providerContext,
 }: {
@@ -42,63 +45,58 @@ export async function getStream({
   providerContext: ProviderContext;
 }): Promise<Stream[]> {
   const { axios } = providerContext;
-  const unixTime = Math.floor(Date.now() / 1000);
-
-  // link: ID|Title
+  const unix = Math.floor(Date.now() / 1000);
   const [id, title = ""] = link.split("|");
 
-  /**
-   * STEP 1 → bypass
-   */
-  const tHash = await getBypassCookie(axios);
-  if (!tHash) return [];
+  try {
+    // 1. Get Bypass Cookie
+    const tHashT = await getBypassCookie(axios);
 
-  /**
-   * STEP 2 → playlist (net20)
-   */
-  const playlistRes = await axios.get(
-    `${MAIN_URL}/pv/playlist.php?id=${id}&t=${encodeURIComponent(
+    // 2. Fetch Playlist
+    const playlistUrl = `${MAIN_URL}/pv/playlist.php?id=${id}&t=${encodeURIComponent(
       title
-    )}&tm=${unixTime}`,
-    {
+    )}&tm=${unix}`;
+
+    const res = await axios.get(playlistUrl, {
       headers: {
-        "User-Agent": UA,
-        "X-Requested-With": "XMLHttpRequest",
-        Referer: `${MAIN_URL}/home`,
-        Cookie: `${tHash}; ott=pv; hd=on`,
+        ...BASE_HEADERS,
+        Cookie: `t_hash_t=${tHashT}; ott=pv; hd=on`,
       },
-    }
-  );
+    });
 
-  const playlist = playlistRes.data;
-  const streams: Stream[] = [];
+    const streamLinks: Stream[] = [];
+    const subtitles: TextTracks[] = [];
 
-  /**
-   * STEP 3 → FINAL STREAM (net51)
-   * ⚠️ MINIMAL HEADERS (KOTLIN STYLE)
-   */
-  if (Array.isArray(playlist)) {
-    for (const item of playlist) {
-      for (const src of item.sources || []) {
-        if (!src.file || !src.file.includes(".m3u8")) continue;
+    if (Array.isArray(res.data)) {
+      res.data.forEach((item: any) => {
+        
+        // 1. Process Subtitles
+        
 
-        const finalUrl =
-          STREAM_URL + src.file.replace("/tv/", "/");
+        // 2. Process Sources (Stream Links)
+        item.sources?.forEach((src: any) => {
+          // Fix path: /tv/path -> /path
+          const cleanFile = src.file.replace("/tv/", "/");
+          const finalUrl = `${MAIN_URL}${cleanFile}`;
 
-        streams.push({
-          server: `PrimeVideo ${src.label || "Auto"}`,
-          link: finalUrl,
-          type: "m3u8",
-          headers: {
-            // ✅ EXACT CLOUDSTREAM BEHAVIOR
-            "User-Agent": UA,
-            Cookie: "hd=on",
-            Referer: `${STREAM_URL}/`,
-          },
+          streamLinks.push({
+            server: `PrimeVideo ${src.label || "Auto"}`,
+            link: finalUrl,
+            type: "m3u8",
+            headers: {
+              "User-Agent": USER_AGENT,
+              Referer: `${MAIN_URL}/`,
+              Cookie: "hd=on",
+            },
+            
+          });
         });
-      }
+      });
     }
-  }
 
-  return streams;
-}
+    return streamLinks;
+  } catch (err) {
+    console.error("PV Stream Error:", err);
+    return [];
+  }
+};

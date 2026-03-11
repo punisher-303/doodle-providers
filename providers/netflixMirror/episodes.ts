@@ -1,6 +1,6 @@
 import { ProviderContext } from "../types";
 
-const MAIN_URL = "https://net20.cc";
+const MAIN_URL = "https://net52.cc"; // Updated
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
@@ -17,18 +17,14 @@ const baseHeaders = {
  */
 async function getBypassCookie(axios: any): Promise<string> {
   try {
-    const url = `${MAIN_URL}/tv/p.php`;
+    for (let i = 0; i < 5; i++) {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, { headers: baseHeaders });
 
-    for (let i = 0; i < 3; i++) {
-      const res = await axios.post(url, null, { headers: baseHeaders });
-
-      if (res.data && JSON.stringify(res.data).includes('"r":"n"')) {
+      const dataStr = JSON.stringify(res.data);
+      if (dataStr && dataStr.includes('"r":"n"')) {
         const setCookie = res.headers["set-cookie"];
         if (setCookie) {
-          const cookieStr = Array.isArray(setCookie)
-            ? setCookie.join(";")
-            : setCookie;
-
+          const cookieStr = Array.isArray(setCookie) ? setCookie.join(";") : setCookie;
           const match = cookieStr.match(/t_hash_t=[^;]+/);
           if (match) return match[0];
         }
@@ -50,14 +46,9 @@ export async function getEpisodes({
   const { axios } = providerContext;
   const unixTime = Math.floor(Date.now() / 1000);
 
-  /**
-   * url format:
-   * seriesId|seasonId|title|type
-   */
   const [seriesId, seasonId, rawTitle, type] = url.split("|");
   const title = (rawTitle || "").replace(/[^a-zA-Z0-9 ]/g, "");
 
-  // 🎬 MOVIE CASE
   if (type === "movie") {
     return [
       {
@@ -70,7 +61,6 @@ export async function getEpisodes({
 
   const episodes: any[] = [];
 
-  // 1️⃣ Get bypass cookie
   const bypassCookie = await getBypassCookie(axios);
   if (!bypassCookie) return [];
 
@@ -102,14 +92,13 @@ export async function getEpisodes({
 
           episodes.push({
             title: `E${epNum} - ${epName}`,
-            // ⚠️ VERY IMPORTANT → EPISODE ID ONLY
             link: `${ep.id}|${title}`,
             image: `https://imgcdn.kim/epimg/150/${ep.id}.jpg`,
           });
         });
       }
 
-      // pagination end
+      // Kotlin logic: 0 means end of pagination
       if (data?.nextPageShow === 0) {
         hasNextPage = false;
       } else {

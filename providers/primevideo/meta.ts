@@ -1,27 +1,37 @@
 import { Info, ProviderContext } from "../types";
 
-const MAIN_URL = "https://net20.cc";
+const MAIN_URL = "https://net52.cc";
+
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
 const BASE_HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+  "User-Agent": USER_AGENT,
   "X-Requested-With": "XMLHttpRequest",
   Referer: `${MAIN_URL}/tv/home`,
 };
 
 async function getBypassCookie(axios: any): Promise<string> {
-  try {
-    const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
-      headers: BASE_HEADERS,
-    });
-    const cookies = res.headers["set-cookie"];
-    if (!cookies) return "";
-    const all = Array.isArray(cookies) ? cookies.join(";") : cookies;
-    const match = all.match(/t_hash_t=[^;]+/);
-    return match ? match[0] : "";
-  } catch {
-    return "";
+  let attempt = 0;
+  while (attempt < 10) {
+    try {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
+        headers: BASE_HEADERS,
+      });
+
+      const dataStr = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+      if (dataStr.includes('"r":"n"')) {
+        const cookies = res.headers["set-cookie"];
+        if (cookies) {
+          const all = Array.isArray(cookies) ? cookies.join(";") : cookies;
+          const match = all.match(/t_hash_t=([^;]+)/);
+          if (match) return match[1];
+        }
+      }
+    } catch {}
+    attempt++;
   }
+  return "";
 }
 
 export async function getMeta({
@@ -38,7 +48,7 @@ export async function getMeta({
 
   const headers = {
     ...BASE_HEADERS,
-    Cookie: `ott=pv; hd=on; ${bypass}`,
+    Cookie: `t_hash_t=${bypass}; ott=pv; hd=on`,
   };
 
   const url = `${MAIN_URL}/pv/post.php?id=${link}&t=${unixTime}`;
@@ -49,13 +59,13 @@ export async function getMeta({
 
     const isSeries =
       Array.isArray(data?.episodes) &&
-      data.episodes.length &&
+      data.episodes.length > 0 &&
       data.episodes[0] !== null;
 
     const info: Info = {
       title: data.title,
       synopsis: data.desc,
-      image: `https://imgcdn.kim/pv/v/${link}.jpg`,
+      image: `https://wsrv.nl/?url=https://imgcdn.kim/pv/v/${link}.jpg&w=500`,
       imdbId: "",
       type: isSeries ? "series" : "movie",
       linkList: [],
@@ -67,17 +77,20 @@ export async function getMeta({
         title: "▶ Play Movie",
         quality: "HD",
         episodesLink: "",
-        directLinks: [{ title: "Server 1", link }],
+        directLinks: [{ title: "Server 1", link: `${link}|${data.title}` }],
       });
       return info;
     }
 
     // 📺 SERIES
     (data.season ?? []).forEach((s: any) => {
+      const seasonId = s.id;
+      const seasonName = s.s ? s.s.replace("S", "") : "";
+      
       info.linkList.push({
-        title: `Season ${s.s.replace("S", "")}`,
+        title: `Season ${seasonName}`,
         quality: "Default",
-        episodesLink: `${link}|${s.id}`,
+        episodesLink: `${link}|${seasonId}`,
         directLinks: [],
       });
     });

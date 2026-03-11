@@ -22,7 +22,7 @@
   {
     "display_name": "Netflix",
     "value": "netflixMirror",
-    "version": "3.3",
+    "version": "3.4",
     "icon": "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2023.ico",
     "type": "global",
     "category": "movie/tv",
@@ -32,7 +32,7 @@
   {
     "display_name": "PrimeVideo",
     "value": "primeMirror",
-    "version": "3.2",
+    "version": "3.3",
     "icon": "https://m.media-amazon.com/images/G/01/digital/video/DVUI/favicons/mstile-70x70.png",
     "type": "india",
     "category": "movie/tv",
@@ -832,7 +832,7 @@
   {
     "display_name": "Desny",
     "value": "desny",
-    "version": "1.9",
+    "version": "2.0",
     "icon": "https://static-mh.content.disney.io/matterhorn/assets/logos/disney_logo_dark-baa807690db7.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -842,7 +842,7 @@
   {
     "display_name": "Hotstar",
     "value": "hotstar",
-    "version": "2.0",
+    "version": "2.1",
     "icon": "https://secure-media.hotstar.com/web-assets/prod/jhs_favicon.ico",
     "type": "global",
     "category": "movie/tvshow",

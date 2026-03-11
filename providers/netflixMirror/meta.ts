@@ -1,37 +1,36 @@
 import { Info, ProviderContext } from "../types";
 
-const MAIN_URL = "https://net20.cc";
+const MAIN_URL = "https://net52.cc"; // Updated to match Kotlin
 
 const USER_AGENT =
   "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36";
-
-const USER_TOKEN = "233123f803cf02184bf6c67e149cdd50";
 
 const BASE_HEADERS = {
   "User-Agent": USER_AGENT,
   "X-Requested-With": "XMLHttpRequest",
   Referer: `${MAIN_URL}/tv/home`,
-  Cookie: `ott=nf; hd=on; user_token=${USER_TOKEN};`,
+  Cookie: "ott=nf; hd=on; user_token=233123f803cf02184bf6c67e149cdd50;",
 };
 
 /**
  * 🔐 Netflix bypass → t_hash_t
- * SAME AS KOTLIN bypass(mainUrl)
  */
 async function getBypassCookie(axios: any): Promise<string> {
   try {
-    const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
-      headers: BASE_HEADERS,
-    });
+    for (let i = 0; i < 5; i++) {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
+        headers: BASE_HEADERS,
+      });
 
-    const setCookie = res.headers["set-cookie"];
-    if (setCookie) {
-      const raw = Array.isArray(setCookie)
-        ? setCookie.join(";")
-        : setCookie;
-
-      const match = raw.match(/t_hash_t=[^;]+/);
-      if (match) return match[0];
+      const dataStr = JSON.stringify(res.data);
+      if (dataStr && dataStr.includes('"r":"n"')) {
+        const setCookie = res.headers["set-cookie"];
+        if (setCookie) {
+          const raw = Array.isArray(setCookie) ? setCookie.join(";") : setCookie;
+          const match = raw.match(/t_hash_t=[^;]+/);
+          if (match) return match[0];
+        }
+      }
     }
   } catch (e) {
     console.error("Netflix bypass error:", e);
@@ -58,9 +57,6 @@ export async function getMeta({
   };
 
   try {
-    /**
-     * 🎯 POST DATA
-     */
     const res = await axios.get(
       `${MAIN_URL}/post.php?id=${id}&t=${unixTime}`,
       { headers }
@@ -72,6 +68,7 @@ export async function getMeta({
     const desc = data?.desc || "";
     const image = `https://imgcdn.kim/poster/v/${id}.jpg`;
 
+    // Kotlin logic: if episodes.first() == null, it's a movie
     const hasEpisodes =
       Array.isArray(data?.episodes) &&
       data.episodes.length > 0 &&
@@ -105,20 +102,17 @@ export async function getMeta({
     }
 
     /**
-     * 📺 SERIES → CLEAN SEASON NUMBERS
-     * 🔥 FIX APPLIED
+     * 📺 SERIES 
      */
     const seasons = Array.isArray(data?.season) ? data.season : [];
 
     seasons.forEach((s: any, index: number) => {
       const seasonId = s?.id ?? `${index + 1}`;
-      const seasonNumber = index + 1; // ✅ UI SAFE
+      const seasonNumber = index + 1;
 
       info.linkList.push({
-        title: `Season ${seasonNumber}`, // ✅ CLEAN TEXT
+        title: `Season ${seasonNumber}`,
         quality: "Default",
-
-        // 🔑 backend needs real seasonId
         episodesLink: `${id}|${seasonId}|${title}|series`,
         directLinks: [],
       });

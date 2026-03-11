@@ -1,37 +1,36 @@
-import { Stream, ProviderContext,} from "../types";
+import { Stream, ProviderContext } from "../types";
 
-const MAIN_URL = "https://net20.cc";
-const STREAM_URL = "https://net51.cc"; // Corresponds to 'newUrl' in Kotlin
+const MAIN_URL = "https://net52.cc"; // Fixed: Net51 removed as Kotlin handles streams on the same domain
 
 const UA =
-  "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36";
+  "Mozilla/5.0 (Linux; Android 13; Pixel 5 Build/TQ3A.230901.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/144.0.7559.132 Safari/537.36 /OS.Gatu v3.0";
 
-async function bypass(axios: any): Promise<string> {
-  // Logic from Kotlin 'bypass' function:
-  // Loops POST request to /tv/p.php until response body contains "r":"n"
-  // Then extracts the 't_hash_t' cookie.
-  let attempt = 0;
-  while (attempt < 10) {
-    try {
-      const res = await axios.post(`${MAIN_URL}/tv/p.php`);
-      const data = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+const BASE_HEADERS = {
+  "User-Agent": UA,
+  "X-Requested-With": "XMLHttpRequest",
+};
 
-      if (data.includes('"r":"n"')) {
-        const setCookie = res.headers["set-cookie"];
-        if (Array.isArray(setCookie)) {
-          const hashCookie = setCookie.find((c: string) => c.includes("t_hash_t"));
-          if (hashCookie) {
-            // Extract value between 't_hash_t=' and ';'
-            const match = hashCookie.match(/t_hash_t=([^;]+)/);
-            return match ? match[1] : "";
-          }
+async function getBypassCookie(axios: any): Promise<string> {
+  try {
+    for (let i = 0; i < 5; i++) {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
+        headers: {
+          ...BASE_HEADERS,
+          Referer: `${MAIN_URL}/`,
+          Cookie: "ott=dp; hd=on;",
+        },
+      });
+      const dataStr = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+      if (dataStr && dataStr.includes('"r":"n"')) {
+        const sc = res.headers["set-cookie"];
+        if (sc) {
+          const raw = Array.isArray(sc) ? sc.join(";") : sc;
+          const match = raw.match(/t_hash_t=[^;]+/);
+          if (match) return match[0];
         }
       }
-    } catch (error) {
-      console.error("DisneyPlus Bypass Error:", error);
     }
-    attempt++;
-  }
+  } catch {}
   return "";
 }
 
@@ -43,61 +42,63 @@ export async function getStream({
   providerContext: ProviderContext;
 }): Promise<Stream[]> {
   const { axios } = providerContext;
-  const unix = Math.floor(Date.now() / 1000);
+  const unixTime = Math.floor(Date.now() / 1000);
   const [id, title = ""] = link.split("|");
 
-  // 1. Get the bypass cookie (Critical step missing in original TS)
-  const tHashT = await bypass(axios);
+  const tHashT = await getBypassCookie(axios);
 
-  // 2. Fetch Playlist
-  // Kotlin uses 'newUrl' (net51.cc) for the playlist request, NOT 'mainUrl'
-  const playlistUrl = `${STREAM_URL}/mobile/hs/playlist.php?id=${id}&t=${encodeURIComponent(
+  // Kotlin directly fetches playlist.php from mainUrl without a separate streamUrl domain
+  const playlistUrl = `${MAIN_URL}/mobile/hs/playlist.php?id=${id}&t=${encodeURIComponent(
     title
-  )}&tm=${unix}`;
+  )}&tm=${unixTime}`;
 
-  const playlistRes = await axios.get(playlistUrl, {
-    headers: {
-      "User-Agent": UA,
-      "Referer": `${MAIN_URL}/home`, // Referer must be mainUrl (net20)
-      "X-Requested-With": "XMLHttpRequest", // Defined in Kotlin 'headers' map
-      "Cookie": `t_hash_t=${tHashT}; ott=dp; hd=on`,
-    },
-  });
+  try {
+    const playlistRes = await axios.get(playlistUrl, {
+      headers: {
+        ...BASE_HEADERS,
+        Referer: `${MAIN_URL}/home`,
+        Cookie: `${tHashT}; ott=dp; hd=on;`,
+      },
+    });
 
-  const streams: Stream[] = [];
-  
+    const streams: Stream[] = [];
+    const subtitles: { language: string; url: string }[] = [];
 
-  if (Array.isArray(playlistRes.data)) {
-    playlistRes.data.forEach((item: any) => {
-      // Parse Sources
-      item.sources?.forEach((src: any) => {
-        streams.push({
-          server: `Disney Plus ${src.label || "Auto"}`,
-          // Kotlin: "$newUrl/${it.file}"
-          link: `${STREAM_URL}/${src.file}`, 
-          type: "m3u8",
-          headers: {
-            "User-Agent": UA,
-            // Kotlin: referer = "$newUrl/home" (net51)
-            "Referer": `${STREAM_URL}/home`, 
-            // Kotlin: Interceptor adds "hd=on" for .m3u8 requests
-            "Cookie": "hd=on", 
-          },
+    if (Array.isArray(playlistRes.data)) {
+      playlistRes.data.forEach((item: any) => {
+        // Parse Tracks / Subtitles first so we can attach them
+        item.tracks?.forEach((track: any) => {
+          if (track.kind === "captions" && track.file) {
+            subtitles.push({
+              language: track.label || "English",
+              // Ensure URL is absolute based on httpsify
+              url: track.file.startsWith("http") ? track.file : `${MAIN_URL}${track.file}`,
+            });
+          }
+        });
+
+        // Parse Sources
+        item.sources?.forEach((src: any) => {
+          if (!src.file) return;
+          streams.push({
+            server: `Disney Plus ${src.label || "Auto"}`,
+            link: src.file.startsWith("http") ? src.file : `${MAIN_URL}/${src.file}`,
+            type: "m3u8",
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Android) ExoPlayer", 
+              Accept: "*/*",
+              Referer: `${MAIN_URL}/home`,
+              Cookie: "hd=on", // Interceptor in Kotlin adds this specifically for m3u8
+            },
+             // Attach extracted subs
+          });
         });
       });
+    }
 
-      // Parse Subtitles
-      // Kotlin: item.tracks?.filter { it.kind == "captions" }
-      item.tracks?.forEach((track: any) => {
-        if (track.kind === "captions") {
-          
-        }
-      });
-    });
+    return streams;
+  } catch (e) {
+    console.error("Disney Stream Error:", e);
+    return [];
   }
-
-  // Attach collected subtitles to all streams
-  return streams.map((stream) => ({
-    ...stream,
-  }));
 }

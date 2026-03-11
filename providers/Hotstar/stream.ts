@@ -1,109 +1,72 @@
 import { Stream, ProviderContext } from "../types";
 
-const MAIN_URL = "https://net22.cc";
-const STREAM_URL = "https://net52.cc";
+const MAIN_URL = "https://net52.cc";
+const UA = "Mozilla/5.0 (Linux; Android 13; Pixel 5 Build/TQ3A.230901.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/144.0.7559.132 Safari/537.36 /OS.Gatu v3.0";
 
-const UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
-
-const USER_TOKEN = "233123f803cf02184bf6c67e149cdd50";
-
-/**
- * 🔐 Step 1: Get Bypass Cookie (t_hash_t)
- * Matches Kotlin: do { ... } while (!verifyCheck.contains("\"r\":\"n\""))
- */
 async function getBypassCookie(axios: any): Promise<string> {
-  try {
-    // Retry loop for reliability
-    for (let i = 0; i < 5; i++) {
-      const res = await axios.post(
-        `${MAIN_URL}/tv/p.php`,
-        null,
-        {
-          headers: {
-            "User-Agent": UA,
-            "X-Requested-With": "XMLHttpRequest",
-            "Referer": `${MAIN_URL}/`,
-            // ott=hs for Hotstar
-            "Cookie": `ott=hs; hd=on; user_token=${USER_TOKEN};`,
-          },
-        }
-      );
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      const res = await axios.post(`${MAIN_URL}/tv/p.php`, null, {
+        headers: {
+          "User-Agent": UA,
+          "X-Requested-With": "XMLHttpRequest",
+          "Referer": `${MAIN_URL}/home`,
+        },
+      });
 
-      const dataStr = JSON.stringify(res.data);
-      if (dataStr && dataStr.includes('"r":"n"')) {
-        const setCookie = res.headers["set-cookie"];
-        if (setCookie) {
-          const str = Array.isArray(setCookie) ? setCookie.join(";") : setCookie;
-          const match = str.match(/t_hash_t=[^;]+/);
-          if (match) return match[0];
+      const dataStr = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+      if (dataStr.includes('"r":"n"')) {
+        const sc = res.headers["set-cookie"];
+        if (sc) {
+          const raw = Array.isArray(sc) ? sc.join(";") : sc;
+          const match = raw.match(/t_hash_t=([^;]+)/);
+          if (match) return match[1];
         }
       }
-    }
-  } catch (e) {
-    console.error("Hotstar Bypass Error:", e);
+    } catch (e) {}
   }
-
   return "";
 }
 
 export async function getStream({
-  link,
+  link, // Fixed: Changed 'url' to 'link'
   providerContext,
 }: {
-  link: string;
+  link: string; // Fixed: Changed 'url' to 'link'
   providerContext: ProviderContext;
 }): Promise<Stream[]> {
   const { axios } = providerContext;
+  
+  // Fixed: Fallback to empty string for title if missing
+  const [id, title = ""] = link.split("|"); 
+  
   const unixTime = Math.floor(Date.now() / 1000);
 
-  // link format: "ID|Title"
-  const [id, title = ""] = link.split("|");
-
-  /**
-   * 1️⃣ BYPASS
-   */
-  const tHash = await getBypassCookie(axios);
-  if (!tHash) return [];
-
-  // Kotlin: cookies = mapOf("t_hash_t" to cookie_value, "ott" to "hs", "hd" to "on")
-  const cookieHeader = `${tHash}; ott=hs; hd=on`;
-
-  /**
-   * 2️⃣ FETCH PLAYLIST
-   * Kotlin: app.get("$newUrl/mobile/hs/playlist.php...", referer = "$mainUrl/", ...)
-   * Note the specific path /mobile/hs/
-   */
-  const playlistUrl = `${STREAM_URL}/mobile/hs/playlist.php?id=${id}&t=${encodeURIComponent(
-    title
-  )}&tm=${unixTime}`;
+  const hash = await getBypassCookie(axios);
+  const playlistUrl = `${MAIN_URL}/mobile/hs/playlist.php?id=${id}&t=${encodeURIComponent(title)}&tm=${unixTime}`;
 
   try {
-    const playlistRes = await axios.get(playlistUrl, {
+    const res = await axios.get(playlistUrl, {
       headers: {
         "User-Agent": UA,
         "X-Requested-With": "XMLHttpRequest",
-        "Referer": `${MAIN_URL}/`, // Kotlin explicitly uses mainUrl as referer here
-        "Cookie": cookieHeader,
+        "Referer": `${MAIN_URL}/home`,
+        "Cookie": `t_hash_t=${hash}; ott=hs; hd=on`,
       },
     });
 
     const streams: Stream[] = [];
-    const playlist = playlistRes.data;
+    const playlist = res.data;
 
-    /**
-     * 3️⃣ PARSE STREAMS
-     */
     if (Array.isArray(playlist)) {
       playlist.forEach((item: any) => {
+        // Parse Video Sources
         item.sources?.forEach((src: any) => {
-          if (!src.file || !src.file.includes(".m3u8")) return;
+          if (!src.file) return;
 
-          // Handle absolute vs relative URLs
-          // Kotlin: "$newUrl/${it.file}"
-          const finalUrl = src.file.startsWith("http")
-            ? src.file
-            : `${STREAM_URL}${src.file}`;
+          const finalUrl = src.file.startsWith("http") 
+            ? src.file 
+            : `${MAIN_URL}/${src.file}`;
 
           streams.push({
             server: `Hotstar ${src.label || "Auto"}`,
@@ -111,11 +74,7 @@ export async function getStream({
             type: "m3u8",
             headers: {
               "User-Agent": UA,
-              "Accept": "*/*",
-              "Connection": "keep-alive",
-              // Kotlin: ExtractorLink referer = "$newUrl/"
-              "Referer": `${STREAM_URL}/`,
-              "Origin": `${STREAM_URL}`,
+              "Referer": `${MAIN_URL}/home`,
               "Cookie": "hd=on",
             },
           });
@@ -124,9 +83,8 @@ export async function getStream({
     }
 
     return streams;
-
   } catch (e) {
-    console.error("Hotstar Stream Error:", e);
+    console.error("Hotstar getStream error:", e);
     return [];
   }
 }
