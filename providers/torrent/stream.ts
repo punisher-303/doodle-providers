@@ -52,22 +52,40 @@ function detectQuality(name: string): string {
 }
 
 export const getStream = async ({ link, type, signal, providerContext }: { link: string, type: string, signal: AbortSignal, providerContext: ProviderContext }): Promise<Stream[]> => {
-  const payload = JSON.parse(link);
+  // 1. Handle if link is already a magnet (happens when called from Player for Torrent provider results)
+  if (typeof link === 'string' && link.startsWith('magnet:')) {
+    return [{
+      server: "Torrent",
+      link: link,
+      type: "torrent",
+      quality: "1080" as any,
+      isDebrid: true,
+    }];
+  }
+
+  let payload: any;
+  try {
+    payload = JSON.parse(link);
+  } catch (e) {
+    console.error("Failed to parse link as JSON:", link);
+    return [];
+  }
+
   const { imdbId, season, episode, title, showTitle, year } = payload;
 
   if (!imdbId && !title && !showTitle) return [];
 
-  // Construct search queries
+  // Construct search queries (Primary: IMDB, Fallback: Title)
   const queries: string[] = [];
   
   if (season && episode) {
     const s = season.toString().padStart(2, '0');
     const e = episode.toString().padStart(2, '0');
-    if (showTitle) queries.push(`${showTitle} S${s}E${e}`);
     queries.push(`${imdbId} S${s}E${e}`);
+    if (showTitle) queries.push(`${showTitle} S${s}E${e}`);
   } else {
-    if (title) queries.push(`${title} ${year || ""}`);
-    queries.push(imdbId);
+    if (imdbId) queries.push(imdbId);
+    if (title) queries.push(`${title}${year ? ' ' + year : ''}`);
   }
 
   const streams: Stream[] = [];
