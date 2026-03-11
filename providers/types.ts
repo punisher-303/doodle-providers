@@ -40,6 +40,7 @@ export interface Info {
   synopsis: string;
   imdbId: string;
   type: string;
+  background?: string;
   tags?: string[];
   cast?: string[];
   rating?: string;
