@@ -1,5 +1,15 @@
 [
   {
+    "display_name": "Torrent",
+    "value": "Torrent",
+    "version": "1.0",
+    "icon": "https://torrentgalaxy.to/common/images/logo.png",
+    "type": "global",
+    "category": "movie/tv",
+    "disabled": false,
+    "sourceUrl": "https://torrentgalaxy.to"
+  },
+  {
     "display_name": "DoodleMovies",
     "value": "vega",
     "version": "4.7",
