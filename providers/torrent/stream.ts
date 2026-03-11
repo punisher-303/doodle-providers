@@ -77,7 +77,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
 
   const streams: Stream[] = [];
   
-  // 1. Construct prioritized queries (PlayTorrio style)
+  // 1. Construct prioritized queries
   const querySet = new Set<string>();
   if (keyword) {
     querySet.add(keyword);
@@ -87,30 +87,62 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
     if (showTitle) querySet.add(`${showTitle} S${s}E${e}`);
     if (imdbId) querySet.add(`${imdbId} S${s}E${e}`);
   } else {
-    if (imdbId) querySet.add(imdbId); // Many trackers support IMDB ID search
+    if (imdbId) querySet.add(imdbId);
     if (title && year) querySet.add(`${title} ${year}`);
     if (title) querySet.add(title);
   }
   const queries = Array.from(querySet);
 
-  // Helpers for Scrapers
+  // Helper for parallel execution
   const runScraper = async (name: string, fn: (q: string) => Promise<Stream[]>) => {
-    for (const q of queries) {
-      try {
-        const results = await fn(q);
-        if (results.length > 0) {
-          streams.push(...results);
-          // If we have enough results for a movie, don't waste time on less specific queries
-          if (type === 'movie' && streams.length > 20) break;
-        }
-      } catch (e) {
-        console.error(`Scraper ${name} failed for query ${q}:`, e);
-      }
+    // For scrapers that use the search keyword
+    const q = queries[0] || ""; 
+    try {
+      const results = await fn(q);
+      streams.push(...results);
+    } catch (e) {
+      console.error(`Scraper ${name} failed:`, e);
     }
   };
 
   const tasks = [
-    // 1. TorrentGalaxy (Premium Public Source)
+    // 0. Torrentio (The Gold Standard - instant JSON results)
+    (async () => {
+      try {
+        let torrentioUrl = "";
+        if (type === 'movie' && imdbId) {
+          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi/stream/movie/${imdbId}.json`;
+        } else if (type === 'series' && imdbId && season && episode) {
+          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi/stream/series/${imdbId}:${season}:${episode}.json`;
+        }
+
+        if (torrentioUrl) {
+          const res = await providerContext.axios.get(torrentioUrl, { signal, timeout: 5000 });
+          if (res.data?.streams) {
+            const results = res.data.streams.map((s: any) => {
+                const nameMatch = s.title.split("\n");
+                const torrentName = nameMatch[0] || s.name;
+                const details = nameMatch.slice(1).join(" | ");
+                const qlt = detectQuality(torrentName) || detectQuality(s.title);
+                
+                return {
+                    name: torrentName,
+                    server: `Torrentio | ${qlt || 'HD'} | ${detectAudioTags(s.title).join(", ")} | ${details}`,
+                    link: s.infoHash ? `magnet:?xt=urn:btih:${s.infoHash}&dn=${encodeURIComponent(torrentName)}` : s.url,
+                    type: "torrent",
+                    quality: qlt as any,
+                    isDebrid: true
+                };
+            });
+            streams.push(...results);
+          }
+        }
+      } catch (e) {
+        console.error("Torrentio failed:", e);
+      }
+    })(),
+
+    // 1. TorrentGalaxy (Fallback)
     runScraper("TGx", async (q) => {
       const url = `https://torrentgalaxy.to/torrents.php?search=${encodeURIComponent(q)}&sort=seeders&order=desc`;
       const res = await providerContext.axios.get(url, { signal, timeout: 6000 });
@@ -137,25 +169,27 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
       return results;
     }),
 
-    // 2. YTS (The gold standard for high-quality movie prints)
-    runScraper("YTS", async (q) => {
-      if (type !== 'movie' || !imdbId) return [];
-      const url = `https://yts.mx/api/v2/list_movies.json?query_term=${imdbId}`;
-      const res = await providerContext.axios.get(url, { signal, timeout: 5000 });
-      if (res.data?.data?.movies?.[0]) {
-        return res.data.data.movies[0].torrents.map((t: any) => ({
-          name: `${res.data.data.movies[0].title_long} [${t.quality}] [YTS]`,
-          server: `YTS | ${t.quality} | ${t.type} | ${t.size} | ${t.seeds}S`,
-          link: `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(res.data.data.movies[0].title_long)}&tr=udp://open.demonii.com:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.coppersurfer.tk:6969&tr=udp://tracker.leechers-paradise.org:6969&tr=udp://zer0day.ch:1337/announce`,
-          type: "torrent",
-          quality: t.quality === "720p" ? "720" : t.quality === "1080p" ? "1080" : t.quality === "2160p" ? "2160" : "480",
-          isDebrid: true
-        }));
-      }
-      return [];
-    }),
+    // 2. YTS (Fallback - Movies only)
+    (async () => {
+      if (type !== 'movie' || !imdbId) return;
+      try {
+          const url = `https://yts.mx/api/v2/list_movies.json?query_term=${imdbId}`;
+          const res = await providerContext.axios.get(url, { signal, timeout: 5000 });
+          if (res.data?.data?.movies?.[0]) {
+            const results = res.data.data.movies[0].torrents.map((t: any) => ({
+              name: `${res.data.data.movies[0].title_long} [${t.quality}] [YTS]`,
+              server: `YTS | ${t.quality} | ${t.type} | ${t.size} | ${t.seeds}S`,
+              link: `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(res.data.data.movies[0].title_long)}&tr=udp://open.demonii.com:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.coppersurfer.tk:6969&tr=udp://tracker.leechers-paradise.org:6969&tr=udp://zer0day.ch:1337/announce`,
+              type: "torrent",
+              quality: t.quality === "720p" ? "720" : t.quality === "1080p" ? "1080" : t.quality === "2160p" ? "2160" : "480",
+              isDebrid: true
+            }));
+            streams.push(...results);
+          }
+      } catch (e) { console.error("YTS failed:", e); }
+    })(),
 
-    // 3. BitSearch (Fast and comprehensive)
+    // 3. BitSearch (Fallback)
     runScraper("BitSearch", async (q) => {
       const url = `https://bitsearch.to/search?q=${encodeURIComponent(q)}&sort=seeders`;
       const res = await providerContext.axios.get(url, { signal, timeout: 5000 });
@@ -180,95 +214,29 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         }
       });
       return results;
-    }),
-
-    // 4. 1337x (The most popular tracker)
-    runScraper("1337x", async (q) => {
-      // 1337x often prefers space-separated keywords for search
-      const searchQ = q.includes('tt') ? q : q.replace(/[^a-zA-Z0-9 ]/g, ' '); 
-      const url = `https://1337x.to/search/${encodeURIComponent(searchQ)}/1/`;
-      const res = await providerContext.axios.get(url, { signal, timeout: 8000 });
-      const $ = providerContext.cheerio.load(res.data);
-      const results: Stream[] = [];
-      
-      const rows = $("table.table-list tbody tr");
-      for (let i = 0; i < Math.min(rows.length, 10); i++) {
-        const el = rows[i];
-        const titleEl = $(el).find("td.name a").eq(1);
-        const detailLink = titleEl.attr("href");
-        if (detailLink) {
-           try {
-             const detailRes = await providerContext.axios.get(`https://1337x.to${detailLink}`, { signal, timeout: 5000 });
-             const $$ = providerContext.cheerio.load(detailRes.data);
-             const magnet = $$('a[href^="magnet:"]').attr("href");
-             if (magnet) {
-                const n = titleEl.text().trim();
-                const s = $(el).find("td.size").clone().children().remove().end().text().trim();
-                const sd = $(el).find("td.seeds").text().trim();
-                const qlt = detectQuality(n);
-                results.push({
-                  name: n,
-                  server: `1337x | ${qlt || 'HD'} | ${detectAudioTags(n).join(", ")} | ${s} | ${sd}S`,
-                  link: magnet,
-                  type: "torrent",
-                  quality: qlt as any,
-                  isDebrid: true
-                });
-             }
-           } catch (e) { /* skip */ }
-        }
-      }
-      return results;
-    }),
-
-    // 5. LimeTorrents (Great fallback)
-    runScraper("Lime", async (q) => {
-        const url = `https://www.limetorrents.info/search/all/${encodeURIComponent(q)}/seeds/1/`;
-        const res = await providerContext.axios.get(url, { signal, timeout: 6000 });
-        const $ = providerContext.cheerio.load(res.data);
-        const results: Stream[] = [];
-        $(".table2 tr").each((i, el) => {
-            if (i === 0) return; // Header
-            const t = $(el).find(".tt-name a").eq(1);
-            // Lime doesn't have magnet on search page, requires detail fetch or we can construct magnet if we had hash
-            // But they do have a "magnet" icon link sometimes
-            const magnet = $(el).find('a[href^="magnet:"]').attr("href");
-            if (magnet) {
-                const n = t.text().trim();
-                const s = $(el).find("td.tdnormal").eq(1).text().trim(); 
-                const sd = $(el).find("td.tdseed").text().trim();
-                const qlt = detectQuality(n);
-                results.push({
-                    name: n,
-                    server: `Lime | ${qlt || 'HD'} | ${detectAudioTags(n).join(", ")} | ${s} | ${sd}S`,
-                    link: magnet,
-                    type: "torrent",
-                    quality: qlt as any,
-                    isDebrid: true
-                });
-            }
-        });
-        return results;
     })
   ];
 
-  await Promise.allSettled(tasks); // Parallel search for all sources
+  await Promise.allSettled(tasks);
 
   // Filter unique magnets by Hash
   const seen = new Set();
   const finalStreams = streams.filter(s => {
-    const hash = s.link.split("btih:")[1]?.split("&")[0]?.toLowerCase();
-    if (!hash || seen.has(hash)) return false;
+    const hashMatch = s.link.match(/btih:([a-fA-F0-9]+)/);
+    const hash = hashMatch ? hashMatch[1].toLowerCase() : s.link;
+    if (seen.has(hash)) return false;
     seen.add(hash);
     return true;
   });
 
-  // Final Sort: Most Seeders first
+  // Final Sort: Most Seeders / Torrentio results first
   return finalStreams.sort((a, b) => {
+      if (a.server.includes("Torrentio") && !b.server.includes("Torrentio")) return -1;
+      if (b.server.includes("Torrentio") && !a.server.includes("Torrentio")) return 1;
+      
       const getSeeders = (s: string) => {
-        const parts = s.split("|");
-        const last = parts[parts.length - 1];
-        return parseInt(last.replace(/[^0-9]/g, "")) || 0;
+        const match = s.match(/(\d+)S/);
+        return match ? parseInt(match[1]) : 0;
       };
       return getSeeders(b.server) - getSeeders(a.server);
   });
