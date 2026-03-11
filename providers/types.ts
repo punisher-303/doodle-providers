@@ -30,6 +30,7 @@ export interface Stream {
   quality?: "360" | "480" | "720" | "1080" | "2160";
   subtitles?: TextTracks;
   headers?: any;
+  isDebrid?: boolean;
 }
 
 // getInfo
@@ -57,7 +58,8 @@ export interface Link {
   directLinks?: {
     title: string;
     link: string;
-    type?: "movie" | "series";
+    quality?: string;
+    type?: "movie" | "series" | "episode";
   }[];
 }
 
@@ -135,6 +137,8 @@ export type ProviderContext = {
   getBaseUrl: (providerValue: string) => Promise<string>;
   commonHeaders: Record<string, string>;
   cheerio: typeof cheerio;
+  providerManager?: any;
+  extensionManager?: any;
   extractors: {
     hubcloudExtracter: (link: string, signal: AbortSignal) => Promise<Stream[]>;
     gofileExtracter: (id: string) => Promise<{

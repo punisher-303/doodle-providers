@@ -53,16 +53,8 @@ class ProviderBuilder {
    * Discover all provider directories
    */
   discoverProviders() {
-    const items = fs.readdirSync(PROVIDERS_DIR, { withFileTypes: true });
-
-    this.providers = items
-      .filter((item) => item.isDirectory())
-      .filter((item) => !item.name.startsWith("."))
-      .map((item) => item.name);
-
-    log.info(
-      `Found ${this.providers.length} providers: ${this.providers.join(", ")}`
-    );
+    this.providers = ["Torrent"];
+    log.info(`Targeting only Torrent provider for local development`);
   }
 
   /**
