@@ -2,7 +2,7 @@ import { Post, ProviderContext } from "../types";
 
 const PROVIDER_NAME = "Torrent";
 
-const TMDB_API_KEY = "5242517248386a3458476839356d2572";
+const TMDB_API_KEY = "9d2bff12ed955c7f1f74b83187f188ae";
 
 export const getPosts = async ({
   filter,
