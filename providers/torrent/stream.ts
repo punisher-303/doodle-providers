@@ -53,52 +53,70 @@ function detectQuality(name: string): string {
 
 export const getStream = async ({ link, type, signal, providerContext }: { link: string, type: string, signal: AbortSignal, providerContext: ProviderContext }): Promise<Stream[]> => {
   const payload = JSON.parse(link);
-  const { imdbId, season, episode } = payload;
+  const { imdbId, season, episode, title, showTitle, year } = payload;
 
-  if (!imdbId) return [];
+  if (!imdbId && !title && !showTitle) return [];
 
-  const query = season && episode 
-    ? `${imdbId} s${season.toString().padStart(2, '0')}e${episode.toString().padStart(2, '0')}`
-    : imdbId;
+  // Construct search queries
+  const queries: string[] = [];
+  
+  if (season && episode) {
+    const s = season.toString().padStart(2, '0');
+    const e = episode.toString().padStart(2, '0');
+    if (showTitle) queries.push(`${showTitle} S${s}E${e}`);
+    queries.push(`${imdbId} S${s}E${e}`);
+  } else {
+    if (title) queries.push(`${title} ${year || ""}`);
+    queries.push(imdbId);
+  }
 
-  const sources = [
-    { name: "TorrentGalaxy", url: `https://torrentgalaxy.to/torrents.php?search=${encodeURIComponent(query)}&sort=seeders&order=desc` },
-  ];
+  const streams: Stream[] = [];
+  
+  for (const query of queries) {
+      if (!query) continue;
+      const url = `https://torrentgalaxy.to/torrents.php?search=${encodeURIComponent(query)}&sort=seeders&order=desc`;
+      
+      try {
+        const tgRes = await providerContext.axios.get(url, { signal });
+        const $ = providerContext.cheerio.load(tgRes.data);
+        
+        $(".tgxtable tr.tgxtablerow").each((_, el) => {
+          const titleEl = $(el).find("a.tgxtitle");
+          const name = titleEl.text().trim();
+          const magnet = $(el).find('a[href^="magnet:"]').attr("href");
+          const size = $(el).find("td").eq(4).text().trim();
+          const seeders = $(el).find("td").eq(10).find("b").first().text().trim();
+
+          if (magnet && !streams.some(s => s.link === magnet)) {
+            const audioTags = detectAudioTags(name);
+            const quality = detectQuality(name);
+            
+            const serverInfo = [
+              "TGx",
+              quality ? (quality === "2160" ? "4K" : quality + "p") : "HD",
+              audioTags.join(", "),
+              size,
+              seeders + "S"
+            ].filter(s => s).join(" | ");
+
+            streams.push({
+              server: serverInfo,
+              link: magnet,
+              type: "torrent",
+              quality: quality as any,
+              isDebrid: true,
+            });
+          }
+        });
+        
+        // If we found enough streams, stop searching other queries
+        if (streams.length >= 5) break;
+      } catch (err) {
+        console.error(`Search failed for query: ${query}`, err);
+      }
+  }
 
   try {
-    const tgRes = await providerContext.axios.get(sources[0].url, { signal });
-    const $ = providerContext.cheerio.load(tgRes.data);
-    const streams: Stream[] = [];
-
-    $(".tgxtable tr.tgxtablerow").each((_, el) => {
-      const titleEl = $(el).find("a.tgxtitle");
-      const name = titleEl.text().trim();
-      const magnet = $(el).find('a[href^="magnet:"]').attr("href");
-      const size = $(el).find("td").eq(4).text().trim();
-      const seeders = $(el).find("td").eq(10).find("b").first().text().trim();
-
-      if (magnet) {
-        const audioTags = detectAudioTags(name);
-        const quality = detectQuality(name);
-        
-        const serverInfo = [
-          "TGx",
-          quality ? (quality === "2160" ? "4K" : quality + "p") : "HD",
-          audioTags.join(", "),
-          size,
-          seeders + "S"
-        ].filter(s => s).join(" | ");
-
-        streams.push({
-          server: serverInfo,
-          link: magnet,
-          type: "torrent",
-          quality: quality as any,
-          isDebrid: true, // Mark as debrid-ready
-        });
-      }
-    });
-
     return streams;
   } catch (err) {
     console.error("Torrent provider error:", err);

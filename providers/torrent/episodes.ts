@@ -16,7 +16,9 @@ export const getEpisodes = async ({ url, providerContext }: { url: string, provi
         season, 
         episode: ep.episode_number, 
         type: "series", 
-        title: ep.name 
+        title: ep.name,
+        showTitle: payload.title,
+        year: payload.year
       }),
     }));
   } catch (err) {

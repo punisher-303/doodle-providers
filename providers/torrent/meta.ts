@@ -25,12 +25,26 @@ export const getMeta = async ({ link, provider, providerContext }: { link: strin
       linkList: payload.type === "series" 
         ? Array.from({ length: data.number_of_seasons }, (_, i) => ({
             title: `Season ${i + 1}`,
-            episodesLink: JSON.stringify({ tmdbId, season: i + 1, imdbId }),
+            episodesLink: JSON.stringify({ 
+              tmdbId, 
+              season: i + 1, 
+              imdbId,
+              title: data.name,
+              year: data.first_air_date?.split("-")[0]
+            }),
           }))
         : [
             {
               title: "Movie",
-              directLinks: [{ title: "Search Torrents", link: JSON.stringify({ imdbId, type: "movie", title: data.title }) }]
+              directLinks: [{ 
+                title: "Search Torrents", 
+                link: JSON.stringify({ 
+                  imdbId, 
+                  type: "movie", 
+                  title: data.title,
+                  year: data.release_date?.split("-")[0]
+                }) 
+              }]
             }
           ],
     };
