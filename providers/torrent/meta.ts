@@ -6,7 +6,7 @@ export const getMeta = async ({ link, provider, providerContext }: { link: strin
   const type = payload.type === "series" ? "tv" : "movie";
 
   const TMDB_API_KEY = "9d2bff12ed955c7f1f74b83187f188ae";
-  const detailsUrl = `https://api.themoviedb.org/3/${type}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids,images`;
+  const detailsUrl = `https://api.themoviedb.org/3/${type}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids,images,credits`;
   
   try {
     const res = await providerContext.axios.get(detailsUrl);
@@ -22,6 +22,12 @@ export const getMeta = async ({ link, provider, providerContext }: { link: strin
       type: payload.type as any,
       rating: data.vote_average?.toFixed(1),
       tags: data.genres?.map((g: any) => g.name) || [],
+      cast: data.credits?.cast?.slice(0, 15).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        character: c.character,
+        image: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : undefined,
+      })) || [],
       linkList: payload.type === "series" 
         ? Array.from({ length: data.number_of_seasons }, (_, i) => ({
             title: `Season ${i + 1}`,

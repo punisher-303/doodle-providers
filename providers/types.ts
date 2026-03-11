@@ -36,6 +36,14 @@ export interface Stream {
 }
 
 // getInfo
+export interface Cast {
+  id: string | number;
+  name: string;
+  character?: string;
+  image?: string;
+  profile_path?: string; // TMDB compatibility
+}
+
 export interface Info {
   title: string;
   image: string;
@@ -44,7 +52,7 @@ export interface Info {
   type: string;
   background?: string;
   tags?: string[];
-  cast?: string[];
+  cast?: Cast[] | string[];
   rating?: string;
   linkList: Link[];
 }
