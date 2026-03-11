@@ -42,22 +42,27 @@ class ProviderBuilder {
    * Clean the dist directory
    */
   cleanDist() {
-    const torrentDist = path.join(DIST_DIR, "Torrent");
-    if (fs.existsSync(torrentDist)) {
-      fs.rmSync(torrentDist, { recursive: true, force: true });
+    if (fs.existsSync(DIST_DIR)) {
+      fs.rmSync(DIST_DIR, { recursive: true, force: true });
     }
-    if (!fs.existsSync(DIST_DIR)) {
-      fs.mkdirSync(DIST_DIR, { recursive: true });
-    }
-    log.info("Cleaned Torrent dist directory");
+    fs.mkdirSync(DIST_DIR, { recursive: true });
+    // log.success("Cleaned dist directory");
   }
 
   /**
    * Discover all provider directories
    */
   discoverProviders() {
-    this.providers = ["Torrent"];
-    log.info(`Targeting only Torrent provider for local development`);
+    const items = fs.readdirSync(PROVIDERS_DIR, { withFileTypes: true });
+
+    this.providers = items
+      .filter((item) => item.isDirectory())
+      .filter((item) => !item.name.startsWith("."))
+      .map((item) => item.name);
+
+    log.info(
+      `Found ${this.providers.length} providers: ${this.providers.join(", ")}`
+    );
   }
 
   /**
@@ -93,8 +98,7 @@ class ProviderBuilder {
   async minifyFiles() {
     const keepConsole = process.env.KEEP_CONSOLE === "true";
     log.build(
-      `Minifying JavaScript files... ${
-        keepConsole ? "(keeping console logs)" : "(removing console logs)"
+      `Minifying JavaScript files... ${keepConsole ? "(keeping console logs)" : "(removing console logs)"
       }`
     );
 
@@ -108,11 +112,11 @@ class ProviderBuilder {
             pure_funcs: keepConsole
               ? ["console.debug"]
               : [
-                  "console.debug",
-                  "console.log",
-                  "console.info",
-                  "console.warn",
-                ],
+                "console.debug",
+                "console.log",
+                "console.info",
+                "console.warn",
+              ],
           },
           mangle: false, // Disable variable name mangling to keep original names
           format: {
@@ -149,7 +153,7 @@ class ProviderBuilder {
       return files;
     };
 
-    const jsFiles = findJsFiles(path.join(DIST_DIR, "Torrent"));
+    const jsFiles = findJsFiles(DIST_DIR);
     let minifiedCount = 0;
     let totalSizeBefore = 0;
     let totalSizeAfter = 0;
@@ -169,14 +173,14 @@ class ProviderBuilder {
     const compressionRatio =
       totalSizeBefore > 0
         ? (
-            ((totalSizeBefore - totalSizeAfter) / totalSizeBefore) *
-            100
-          ).toFixed(1)
+          ((totalSizeBefore - totalSizeAfter) / totalSizeBefore) *
+          100
+        ).toFixed(1)
         : 0;
 
     log.success(
       `Minified ${minifiedCount}/${jsFiles.length} files. ` +
-        `Size reduced by ${compressionRatio}% (${totalSizeBefore} → ${totalSizeAfter} bytes)`
+      `Size reduced by ${compressionRatio}% (${totalSizeBefore} → ${totalSizeAfter} bytes)`
     );
   }
 
@@ -231,8 +235,7 @@ class ProviderBuilder {
 
     if (isWatchMode) {
       console.log(
-        `\n${colors.cyan}🔄 Auto-build triggered${
-          colors.reset
+        `\n${colors.cyan}🔄 Auto-build triggered${colors.reset
         } ${new Date().toLocaleTimeString()}`
       );
     } else {
