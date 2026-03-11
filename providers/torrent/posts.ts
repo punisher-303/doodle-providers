@@ -56,7 +56,7 @@ export const getPosts = async ({
 };
 
 export const getSearchPosts = async ({ searchQuery, page, providerContext, signal }: { searchQuery: string, page: number, providerContext: ProviderContext, signal: AbortSignal }): Promise<Post[]> => {
-  const searchUrl = `https://api.themoviedb.org/3/search/multi?api_key=5242517248386a3458476839356d2572&query=${encodeURIComponent(
+  const searchUrl = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
     searchQuery
   )}&page=${page}`;
 
