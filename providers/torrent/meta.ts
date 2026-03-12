@@ -22,7 +22,7 @@ export const getMeta = async ({ link, provider, providerContext }: { link: strin
       type: payload.type as any,
       rating: data.vote_average?.toFixed(1),
       tags: data.genres?.map((g: any) => g.name) || [],
-      cast: data.credits?.cast?.slice(0, 15).map((c: any) => ({
+      cast: data.credits?.cast?.slice(0, 40).map((c: any) => ({
         id: c.id,
         name: c.name,
         character: c.character,
