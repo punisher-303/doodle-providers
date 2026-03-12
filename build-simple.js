@@ -42,23 +42,37 @@ class ProviderBuilder {
    * Clean the dist directory
    */
   cleanDist() {
-    if (fs.existsSync(DIST_DIR)) {
-      fs.rmSync(DIST_DIR, { recursive: true, force: true });
+    const onlyProvider = process.env.ONLY_PROVIDER;
+    if (onlyProvider) {
+      const providerDistDir = path.join(DIST_DIR, onlyProvider);
+      if (fs.existsSync(providerDistDir)) {
+        fs.rmSync(providerDistDir, { recursive: true, force: true });
+      }
+      log.info(`Cleaned dist directory for ${onlyProvider} only`);
+    } else {
+      if (fs.existsSync(DIST_DIR)) {
+        fs.rmSync(DIST_DIR, { recursive: true, force: true });
+      }
+      // log.success("Cleaned dist directory");
     }
     fs.mkdirSync(DIST_DIR, { recursive: true });
-    // log.success("Cleaned dist directory");
   }
 
   /**
    * Discover all provider directories
    */
   discoverProviders() {
+    const onlyProvider = process.env.ONLY_PROVIDER;
     const items = fs.readdirSync(PROVIDERS_DIR, { withFileTypes: true });
 
     this.providers = items
       .filter((item) => item.isDirectory())
       .filter((item) => !item.name.startsWith("."))
       .map((item) => item.name);
+
+    if (onlyProvider) {
+      this.providers = this.providers.filter(p => p === onlyProvider);
+    }
 
     log.info(
       `Found ${this.providers.length} providers: ${this.providers.join(", ")}`

@@ -47,20 +47,28 @@ export const getPosts = async ({
   try {
     const res = await providerContext.axios.get(url);
     return res.data.results
-      .filter((item: any) => item.poster_path || item.profile_path)
-      .map((item: any) => ({
-        title: item.title || item.name,
-        image: `https://image.tmdb.org/t/p/w500${item.poster_path || item.profile_path}`,
-        link: filter === "popular_people" 
-          ? `person_id:${item.id}:${item.name}` 
-          : JSON.stringify({
-              tmdbId: item.id,
-              type: item.media_type === "tv" || filter.includes("tv") ? "series" : "movie",
-              title: item.title || item.name,
-            }),
-        provider: PROVIDER_NAME,
-        type: filter === "popular_people" ? "person" : undefined,
-      }));
+      .filter((item: any) => {
+        if (filter === "popular_people") return item.profile_path;
+        // Skip people in movies/tv/trending categories
+        return item.media_type !== "person" && (item.poster_path || item.profile_path);
+      })
+      .map((item: any) => {
+        const isPerson = filter === "popular_people" || item.media_type === "person";
+        
+        return {
+          title: item.title || item.name,
+          image: `https://image.tmdb.org/t/p/w500${item.poster_path || item.profile_path}`,
+          link: isPerson 
+            ? `person_id:${item.id}:${item.name}` 
+            : JSON.stringify({
+                tmdbId: item.id,
+                type: item.media_type === "tv" || filter.includes("tv") ? "series" : "movie",
+                title: item.title || item.name,
+              }),
+          provider: PROVIDER_NAME,
+          type: isPerson ? "person" : (item.media_type === "tv" || filter.includes("tv") ? "series" : "movie"),
+        };
+      });
   } catch (err) {
     console.error(err);
     return [];

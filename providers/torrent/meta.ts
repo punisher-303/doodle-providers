@@ -1,7 +1,25 @@
 import { ProviderContext, Info } from "../types";
 
 export const getMeta = async ({ link, provider, providerContext }: { link: string, provider: string, providerContext: ProviderContext }): Promise<Info> => {
-  const payload = JSON.parse(link);
+  let payload: any;
+  try {
+     payload = JSON.parse(link);
+  } catch (e) {
+     // Fallback for non-JSON links (like person_id)
+     if (link.startsWith('person_id:')) {
+        const [_, id, name] = link.split(':');
+        return {
+           title: name,
+           image: '',
+           type: 'person' as any,
+           synopsis: '',
+           imdbId: '',
+           linkList: []
+        };
+     }
+     throw new Error("Invalid metadata link: " + link);
+  }
+
   const tmdbId = payload.tmdbId;
   const type = payload.type === "series" ? "tv" : "movie";
 

@@ -9,6 +9,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["providers/Torrent/**/*", "providers/types.ts"],
+  "include": ["providers/torrent/**/*", "providers/types.ts"],
   "exclude": ["node_modules", "dist"]
 }

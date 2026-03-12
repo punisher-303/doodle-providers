@@ -7,7 +7,13 @@
     "type": "global",
     "category": "movie/tvshow",
     "disabled": false,
-    "sourceUrl": "https://torrentgalaxy.to"
+    "sourceUrl": "https://torrentgalaxy.to",
+    "bridges": [
+      "http://torr.unknot.ru:8090",
+      "http://ts.shv.su",
+      "http://torrserver.nnoffkj.ru",
+      "http://vavilon.online:8090"
+    ]
   },
   {
     "display_name": "DoodleMovies",
