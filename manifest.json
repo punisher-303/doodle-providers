@@ -18,7 +18,7 @@
   {
     "display_name": "DoodleMovies",
     "value": "vega",
-    "version": "4.7",
+    "version": "4.8",
     "icon": "https://vegamovies.careers/templates/vegamovies/images/v-l.png",
     "type": "global",
     "category": "movie/tv",
@@ -975,7 +975,7 @@
   {
     "display_name": "xdmovies",
     "value": "xdmovies",
-    "version": "1.5",
+    "version": "1.6",
     "icon": "https://xdmovies.site/assets/logo1.png",
     "type": "global",
     "category": "movie/tvshow",
