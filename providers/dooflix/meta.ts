@@ -1,30 +1,9 @@
-import { Info, Link, EpisodeLink, ProviderContext } from "../types";
+import { Info, Link, ProviderContext } from "../types";
 
-// शीर्षलेख (Headers)
-const headers = {
-  Accept:
-    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-  "Cache-Control": "no-store",
-  "Accept-Language": "en-US,en;q=0.9",
-  DNT: "1",
-  "sec-ch-ua":
-    '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": '"Windows"',
-  "Sec-Fetch-Dest": "document",
-  "Sec-Fetch-Mode": "navigate",
-  "Sec-Fetch-Site": "none",
-  "Sec-Fetch-User": "?1",
-  Cookie:
-    "xla=s4t; _ga=GA1.1.1081149560.1756378968; _ga_BLZGKYN5PF=GS2.1.s1756378968$o1$g1$t1756378984$j44$l0$h0",
-  "Upgrade-Insecure-Requests": "1",
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+const kmmHeaders = {
+  "Referer": "https://google.com",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 };
-
-// ====================================================================
-//                             getMeta
-// ====================================================================
 
 export const getMeta = async function ({
   link,
@@ -33,168 +12,176 @@ export const getMeta = async function ({
   link: string;
   providerContext: ProviderContext;
 }): Promise<Info> {
-  const { axios, cheerio } = providerContext;
-  const url = link;
-  const baseUrl = url.split("/").slice(0, 3).join("/");
-
-  const emptyResult: Info = {
-    title: "",
-    synopsis: "",
-    image: "",
-    imdbId: "",
-    type: "movie",
-    linkList: [],
-  };
-
   try {
-    const response = await axios.get(url, {
-      headers: { ...headers, Referer: baseUrl },
+    const { axios, cheerio } = providerContext;
+
+    if (!link.startsWith("http")) {
+      link = new URL(link, "https://kmmovies.world").href; // Note: Ensure baseUrl matches the site
+    }
+
+    const res = await axios.get(link, { headers: kmmHeaders, validateStatus: () => true });
+    const $ = cheerio.load(res.data);
+
+    // --- Clean Title ---
+    // Targets the new hero-title, falls back to h1 or og:title. 
+    // Removes the year (e.g., "(2022)") and trailing/leading spaces.
+    let rawTitle = 
+      $("h1.hero-title").first().text().trim() || 
+      $("h1, h2, .animated-text").first().text().trim() ||
+      $("meta[property='og:title']").attr("content")?.trim() ||
+      $("title").text().trim() ||
+      "Unknown";
+
+    let title = rawTitle.replace(/\s*\(\d{4}\).*$/g, "").trim();
+
+    // --- Poster Image ---
+    let image =
+      $("img.hero-poster").first().attr("src") || 
+      $("div.wp-slider-container img").first().attr("src") ||
+      $("meta[property='og:image']").attr("content") ||
+      $("meta[name='twitter:image']").attr("content") ||
+      "";
+      
+    if (!image || !image.startsWith("http")) {
+      image = new URL(image || "/placeholder.png", link).href;
+    }
+
+    // --- Synopsis ---
+    let synopsis = $(".hero-description").first().text().trim();
+    if (!synopsis) {
+        $("p").each((_, el) => {
+          const text = $(el).text().trim();
+          if (
+            text &&
+            text.length > 40 &&
+            !text.toLowerCase().includes("download") &&
+            !text.toLowerCase().includes("quality")
+          ) {
+            synopsis = text;
+            return false;
+          }
+        });
+    }
+    if (!synopsis) {
+      synopsis = $("meta[property='og:description']").attr("content") || $("meta[name='description']").attr("content") || "";
+    }
+
+    // --- Metadata (Tags, Cast, Rating, IMDb) ---
+    const tags: string[] = [];
+    if (res.data.toLowerCase().includes("action")) tags.push("Action");
+    if (res.data.toLowerCase().includes("drama")) tags.push("Drama");
+    if (res.data.toLowerCase().includes("romance")) tags.push("Romance");
+    if (res.data.toLowerCase().includes("thriller")) tags.push("Thriller");
+
+    const cast: string[] = [];
+    // Site doesn't explicitly list cast in the snippet, but we keep fallback
+    $("p").each((_, el) => {
+      const text = $(el).text().trim();
+      if (/starring|cast/i.test(text)) {
+        text.split(",").forEach((name) => cast.push(name.trim()));
+      }
     });
 
-    const $ = cheerio.load(response.data);
-    const infoContainer = $(".entry-content, .post-inner").length
-      ? $(".entry-content, .post-inner")
-      : $("body");
+    let rating = $(".rating-star").first().text().replace("★", "").trim();
+    if (!rating) rating = $("p").text().match(/IMDb Rating[:\s]*([0-9.]+)/i)?.[1] || "";
+    if (rating && !rating.includes("/")) rating = rating + "/10";
 
-    const result: Info = {
-      title: "",
+    const imdbLink = $("a.btn[href*='imdb.com']").attr("href") || $("p a[href*='imdb.com']").attr("href") || "";
+    const imdbId = imdbLink && imdbLink.includes("/tt") ? "tt" + imdbLink.split("/tt")[1].split("/")[0] : "";
+
+    // --- Download Links ---
+    const linkList: Link[] = [];
+    const isSeries = /season|episode/i.test(rawTitle) || $(".download-options-grid").length > 0;
+
+    // 1. New Structure (.downloads-section a.dl-btn)
+    $("a.dl-btn").each((_, a) => {
+        const btn = $(a);
+        const href = btn.attr("href");
+        if (!href || href === "#") return;
+
+        const qualityNode = btn.find(".dl-quality").text().trim() || btn.find(".dl-res").text().trim() || "HD";
+        const sizeNode = btn.find(".dl-size").text().trim();
+        
+        // Extract a clean standard quality (480p, 720p, etc.) for sorting purposes
+        const qualityMatch = qualityNode.match(/\b(480p|720p|1080p|2160p|4K)\b/i)?.[0]?.toLowerCase() || "HD";
+        
+        const linkTitle = `Play ${qualityNode} ${sizeNode ? `[${sizeNode}]` : ""}`.trim();
+
+        linkList.push({
+            title: linkTitle,
+            quality: qualityMatch,
+            episodesLink: href,
+            directLinks: [{ 
+                link: href, 
+                title: linkTitle, 
+                type: isSeries ? "series" : "movie" 
+            }],
+        });
+    });
+
+    // 2. Fallback for older series structure (.download-card)
+    if (linkList.length === 0 && isSeries) {
+      $(".download-card").each((_, card) => {
+        const card$ = $(card);
+        const quality = card$.find(".download-quality-text").text().trim() || "AUTO";
+        const size = card$.find(".download-size-info").text().trim() || "";
+        const href = card$.find("a.tabs-download-button").attr("href") || "";
+        if (href) {
+          const titleText = `Download ${quality} ${size}`.trim();
+          linkList.push({
+            title: titleText,
+            quality: quality,
+            episodesLink: href,
+            directLinks: [{ link: href, title: titleText, type: "series" }],
+          });
+        }
+      });
+    } 
+    
+    // 3. Fallback for older movie structure (.modern-download-button)
+    if (linkList.length === 0 && !isSeries) {
+      $("a.modern-download-button").each((_, a) => {
+        const parent = $(a).closest(".modern-option-card");
+        const quality = parent.find(".modern-badge").text().trim() || "AUTO";
+        const href = $(a).attr("href") || "";
+        const titleText = `Play ${quality}`;
+        if (href) {
+          linkList.push({
+            title: titleText,
+            quality: quality,
+            episodesLink: href,
+            directLinks: [{ link: href, title: titleText, type: "movie" }],
+          });
+        }
+      });
+    }
+
+    // Deduplicate identical links
+    const uniqueLinks = Array.from(new Map(linkList.map(item => [item.episodesLink, item])).values());
+
+    return {
+      title,
+      synopsis,
+      image,
+      imdbId,
+      type: isSeries ? "series" : "movie",
+      tags,
+      cast,
+      rating,
+      linkList: uniqueLinks,
+    };
+  } catch (err: any) {
+    console.error("KMMOVIES getMeta error:", err.message);
+    return {
+      title: "Unknown",
       synopsis: "",
       image: "",
       imdbId: "",
       type: "movie",
+      tags: [],
+      cast: [],
+      rating: "",
       linkList: [],
     };
-
-    // --- प्रकार निर्धारण (Type determination) ---
-    const infoParagraph = $("h2.movie-title").next("p").text();
-    if (
-      infoParagraph.includes("Season:") ||
-      infoParagraph.includes("Episode:") ||
-      infoParagraph.includes("SHOW Name:") ||
-      $("h1").text().includes("Season")
-    ) {
-      result.type = "series"; // यदि 'Season' या 'Episode' का उल्लेख है, तो यह एक सीरीज़ है
-    } else {
-      result.type = "movie";
-    }
-
-    // --- शीर्षक, IMDb ID, छवि, सारांश निष्कर्षण तर्क (Title, IMDb, Image, Synopsis extraction logic) ---
-
-    const rawTitle = $("h1").text().trim() || $("h2").text().trim();
-    result.title = rawTitle.split(/\[| \d+p| x\d+/)[0].trim();
-    const showNameMatch =
-      infoParagraph.match(/SHOW Name: (.+)/) ||
-      infoParagraph.match(/Name: (.+)/);
-    if (showNameMatch && showNameMatch[1]) {
-      result.title = result.title || showNameMatch[1].trim();
-    }
-
-    const imdbMatch =
-      infoContainer.html()?.match(/tt\d+/) ||
-      $("a[href*='imdb.com/title/']").attr("href")?.match(/tt\d+/);
-    result.imdbId = imdbMatch ? imdbMatch[0] : "";
-
-    let image =
-      infoContainer.find(".post-thumbnail img").attr("src") ||
-      infoContainer.find("img[src]").first().attr("src") ||
-      "";
-    if (image.startsWith("//")) image = "https:" + image;
-    else if (image.startsWith("/")) image = baseUrl + image;
-    if (image.includes("no-thumbnail") || image.includes("placeholder"))
-      image = "";
-    result.image = image;
-
-    result.synopsis =
-      infoContainer
-        .find("div:contains('Movie-SYNOPSIS/Story')")
-        .nextAll("div")
-        .first()
-        .text()
-        .trim() ||
-      $("h3.movie-title")
-        .filter((i, el) => $(el).text().includes("Storyline"))
-        .next("p")
-        .text()
-        .trim() ||
-      infoContainer.find("p").first().text().trim() ||
-      "";
-
-    // --- लिंकलिस्ट निष्कर्षण (LinkList extraction) ---
-    const links: Link[] = [];
-    let currentTitleGroup = "";
-
-    infoContainer.find("h5, h3").each((index, element) => {
-      const el = $(element);
-      
-      const rawNode = el.get(0);
-      const tag = rawNode && 'tagName' in rawNode ? rawNode.tagName.toLowerCase() : '';
-
-      const text = el.text().trim();
-
-      if (tag === "h5" && el.closest(".download-message-box").length) {
-        // यह लिंक ग्रुप का नाम सेट करता है (जैसे: "Complete Season 2 Episode Wise")
-        currentTitleGroup = text;
-      } else if (tag === "h3" && text && el.find("a").length) {
-        const anchor = el.find("a");
-        const linkHref = anchor.attr("href");
-        const linkText = anchor.text().trim();
-
-        if (linkHref && linkText) {
-          const qualityMatch = linkText.match(/\d+p\b/i)?.[0];
-
-          if (qualityMatch) {
-            let existingLink = links.find(
-              (l) =>
-                l.quality === qualityMatch &&
-                l.title.includes(currentTitleGroup)
-            );
-
-            // यदि इस ग्रुप/गुणवत्ता के लिए कोई लिंक ऑब्जेक्ट मौजूद नहीं है, तो इसे बनाएं।
-            if (!existingLink) {
-              // सुधार: यदि currentTitleGroup खाली है (अक्सर मूवी के लिए), तो सिर्फ qualityMatch का उपयोग करें
-              const title = currentTitleGroup ? `${currentTitleGroup} - ${qualityMatch}` : qualityMatch;
-              existingLink = {
-                title: title,
-                quality: qualityMatch,
-                episodesLink: "",
-                directLinks: [], // डायरेक्ट डाउनलोड के लिए खाली सरणी
-              };
-              links.push(existingLink);
-            }
-
-            // --- एपिसोड/मूवी लिंक के लिए संशोधित शर्त ---
-            
-            const linkTextLower = linkText.toLowerCase();
-
-            // isEpisodeLinkPointer: यह तभी TRUE होगा जब यह एक सीरीज़ है, ज़िप या बैच/कम्प्लीट लिंक नहीं है, और episodesLink अभी तक सेट नहीं किया गया है।
-            const isEpisodeLinkPointer = 
-                result.type === "series" && // 1. केवल सीरीज़ के लिए पॉइंटर चाहिए
-                !currentTitleGroup.toLowerCase().includes("zip") && // 2. ग्रुप नाम में 'zip' नहीं होना चाहिए
-                !linkTextLower.includes("complete link") && // 3. लिंक टेक्स्ट में 'complete link' नहीं होना चाहिए (नया चेक)
-                !linkTextLower.includes("batch") && // 4. लिंक टेक्स्ट में 'batch' नहीं होना चाहिए (नया चेक)
-                !existingLink.episodesLink; // 5. episodesLink पहले से सेट नहीं होना चाहिए
-
-            if (isEpisodeLinkPointer) {
-                // एपिसोड सूची वाले पेज का URL यहां असाइन करें
-                existingLink.episodesLink = linkHref;
-            } else {
-                // यह या तो एक मूवी का डायरेक्ट लिंक है, एक ज़िप लिंक है, या एक सीरीज़ का बैच/डायरेक्ट डाउनलोड है।
-                // इन सभी मामलों में, हम directLinks का उपयोग करते हैं।
-                existingLink.directLinks!.push({ 
-                    title: linkText,
-                    link: linkHref,
-                    // 'type' property हटा दी गई है ताकि यह आपके types.ts के साथ संकलित हो सके
-                });
-            }
-          }
-        }
-      }
-    });
-
-    result.linkList = links;
-    return result;
-  } catch (err) {
-    console.log("getMeta error:", err);
-    return emptyResult;
   }
 };

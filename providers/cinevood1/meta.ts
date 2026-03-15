@@ -1,6 +1,6 @@
 import { Info, Link, ProviderContext } from "../types";
 
-// Headers
+// Headers optimized to mimic a real browser session
 const headers = {
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,application/signed-exchange;v=b3;q=0.7",
@@ -15,7 +15,6 @@ const headers = {
   "Sec-Fetch-Mode": "navigate",
   "Sec-Fetch-Site": "none",
   "Sec-Fetch-User": "?1",
-  // NOTE: Cookies often expire or change, use caution with hardcoding.
   Cookie:
     "xla=s4t; _ga=GA1.1.1081149560.1756378968; _ga_BLZGKYN5PF=GS2.1.s1756378968$o1$g1$t1756378984$j44$l0$h0",
   "Upgrade-Insecure-Requests": "1",
@@ -23,7 +22,7 @@ const headers = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
 };
 
-export const getMeta = async function ({
+export const getMeta = function ({
   link,
   providerContext,
 }: {
@@ -31,8 +30,8 @@ export const getMeta = async function ({
   providerContext: ProviderContext;
 }): Promise<Info> {
   const { axios, cheerio } = providerContext;
-  const url = link;
-  const baseUrl = url.split("/").slice(0, 3).join("/");
+
+  const baseUrl = link.split("/").slice(0, 3).join("/");
 
   const emptyResult: Info = {
     title: "",
@@ -43,118 +42,140 @@ export const getMeta = async function ({
     linkList: [],
   };
 
-  try {
-    const response = await axios.get(url, {
+  // Removed the slow public CORS proxy. React Native (Hermes) bypasses CORS natively.
+  // Added a 10s timeout to prevent the app from hanging if the site is down.
+  return axios
+    .get(link, {
       headers: { ...headers, Referer: baseUrl },
-    });
+      timeout: 10000, 
+    })
+    .then((response: any) => {
+      const $ = cheerio.load(response.data || "");
+      const infoContainer = $(".single_post, .entry-content, .post-inner").first();
 
-    const $ = cheerio.load(response.data);
-    const infoContainer = $(".entry-content, .post-inner").first();
+      // ----- TITLE EXTRACTION & CLEANUP -----
+      let title = $("h1.entry-title").text().trim();
+      
+      if (!title) {
+        const downloadTitleMatch = infoContainer
+          .find("h6 span")
+          .first()
+          .text()
+          .match(/(.*)\s*\(\d{4}\)/);
+        if (downloadTitleMatch) {
+          title = downloadTitleMatch[1].trim();
+        }
+      }
 
-    const result: Info = {
-      title: "",
-      synopsis: "",
-      image: "",
-      imdbId: "",
-      type: "movie",
-      linkList: [],
-    };
+      if (!title) {
+        const rawTitle = $("#movie_title a").text().trim();
+        title = rawTitle.replace(/<small>.*<\/small>/, "").trim() || "Unknown Title";
+      }
 
-    // --- Title ---
-    // Prioritize title from the main download heading
-    const downloadTitleMatch = infoContainer.find("h6 span").first().text().match(/(.*)\s*\(\d{4}\)/);
-    if (downloadTitleMatch) {
-      result.title = downloadTitleMatch[1].trim();
-    }
+      // 1. Remove "Download" keyword
+      title = title.replace(/^Download\s+/i, "").trim();
+      // 2. Aggressively strip everything from the first quality/audio tag onwards
+      title = title.replace(/\s*(HQ|HDTC|HDRip|WEB-DL|AMZN|BluRay|480p|720p|1080p|2160p|4K|x264|x265|HEVC|AAC|AVC|Dual Audio|Hindi|Tamil|Telugu|English).*/i, "").trim();
+      // 3. Remove any trailing hyphens, brackets, or stray punctuation left behind
+      title = title.replace(/[-:[\]()]+$/, "").trim();
 
-    // Fallback to movie title selector if main heading failed
-    if (!result.title || result.title === "Unknown Title") {
-      const rawTitle = $("#movie_title a").text().trim();
-      // Clean up title from IMDb box: "Kantara A Legend: Chapter 1<small></small>" -> "Kantara A Legend: Chapter 1"
-      result.title = rawTitle.replace(/<small>.*<\/small>/, "").trim() || "Unknown Title";
-    }
+      // ----- TYPE (MOVIE / SERIES) -----
+      const fullText = infoContainer.text().toLowerCase();
+      const type =
+        fullText.includes("season") ||
+        fullText.includes("episode") ||
+        fullText.match(/s\d{2}e\d{2}/)
+          ? "series"
+          : "movie";
 
-    // --- Type determination ---
-    // Check if the page title (or URL) suggests a series, otherwise default to movie
-    const firstDownloadHeadingText = infoContainer.find("h6").first().text();
-    // Improved check: look for Season/Episode patterns (S01, E01, Season 1)
-    const isSeries = firstDownloadHeadingText.includes("S01") || firstDownloadHeadingText.includes("E01") || firstDownloadHeadingText.toLowerCase().includes("season");
-    result.type = isSeries ? "series" : "movie";
+      // ----- IMDb ID -----
+      const imdbMatch = infoContainer.html()?.match(/title\/(tt\d+)/);
+      const imdbId = imdbMatch ? imdbMatch[1] : "";
 
-    // --- IMDb ID ---
-    const imdbMatch = $("#movie_title a").attr("href")?.match(/tt\d+/);
-    result.imdbId = imdbMatch ? imdbMatch[0] : "";
+      // ----- IMAGE -----
+      let image =
+        infoContainer.find('img[decoding="async"]').first().attr("src") ||
+        infoContainer.find("img").first().attr("src") ||
+        "";
+      if (image.startsWith("//")) image = "https:" + image;
 
-    // --- Image ---
-    // Search for an image within the info container
-    let image = infoContainer.find('img[decoding="async"]').first().attr("src") || "";
-    if (image.startsWith("//")) image = "https:" + image;
-    result.image = image;
+      // ----- SYNOPSIS -----
+      let synopsis = "";
+      const genresParagraph = infoContainer.find("p").filter((_, el) => $(el).text().includes("Genres:"));
+      if (genresParagraph.length > 0) {
+        synopsis = genresParagraph.prev("p").text().trim();
+      }
+      if (!synopsis) {
+        synopsis = infoContainer.find("p").first().text().trim();
+      }
 
-    // --- Synopsis ---
-    result.synopsis = infoContainer.find("#summary b:contains('Summary:')").parent().text().replace("Summary:", "").trim() || "";
+      // ----- LINK LIST -----
+      const links: Link[] = [];
+      const qualityBlocks = infoContainer.find("h6");
 
-    // --- LinkList extraction (Updated for flexible title and link structure) ---
-    const links: Link[] = [];
+      qualityBlocks.each((_, element) => {
+        const el = $(element);
+        const fullHeadingText = el.text().trim();
 
-    // Select all <h6> tags that contain quality/file size info.
-    const qualityBlocks = infoContainer.find("h6");
+        const qualityMatch = fullHeadingText.match(/\d{3,4}p/)?.[0] || "";
+        const fileSizeMatch = fullHeadingText.match(/\[([^\]]+)\](?=[^\[]*$)/)?.[1] || "";
 
-    qualityBlocks.each((index, element) => {
-      const el = $(element);
-      const fullTitle = el.text().trim();
+        const directLinks: any[] = [];
+        
+        // Find anchor tags immediately following the h6 block
+        const nextSiblings = el.nextUntil("h6, h2, hr");
 
-      // Extract Quality (e.g., 1080p, 720p, 480p)
-      const qualityMatch = fullTitle.match(/\d{3,4}p\b/)?.[0] || "";
-      // Extract File Size (content within the last pair of brackets, e.g., 11.78 GB)
-      // Look for any bracketed text at the end of the title
-      const fileSizeMatch = fullTitle.match(/\[([^\]]+)\](?=[^\[]*$)/)?.[1] || "";
-
-      const directLinks: Link["directLinks"] = [];
-
-      // Get all immediate sibling elements until the next <h6> or <hr>.
-      const nextSiblings = el.nextUntil("h6, hr");
-
-      // Find all <a> elements that are descendants of the siblings OR are the siblings themselves
-      nextSiblings.find("a").add(nextSiblings.filter("a")).each((i, btn) => {
-          const btnEl = $(btn);
-          const link = btnEl.attr("href");
-          if (link) {
+        nextSiblings
+          .filter("a")
+          .add(nextSiblings.find("a"))
+          .each((i, btn) => {
+            const b = $(btn);
+            const href = b.attr("href");
+            if (href && href.startsWith("http")) {
               directLinks.push({
-                  // Use button title (e.g., '🌩️OxxFile') or text
-                  title: btnEl.attr("title")?.trim() || btnEl.text().trim() || "Download Link",
-                  link,
+                title: b.attr("title")?.trim() || b.find(".mb-text").text().trim() || b.text().trim() || "Download Link",
+                link: href,
+                type: type,
               });
+            }
+          });
+
+        if (directLinks.length > 0) {
+          const seMatch = fullHeadingText.match(/(S\d{2}E\d{2}|S\d{2}|E\d{2})/i);
+          const seasonEpisode = seMatch ? `${seMatch[0]} | ` : "";
+          
+          let linkTitle = `${seasonEpisode}${qualityMatch}${fileSizeMatch ? " | " + fileSizeMatch : ""}`.trim();
+          if (!linkTitle) linkTitle = fullHeadingText || "Download";
+
+          if (type === "movie") {
+            links.push({
+              title: linkTitle,
+              quality: qualityMatch,
+              directLinks: directLinks,
+              episodesLink: "",
+            });
+          } else {
+             links.push({
+              title: linkTitle,
+              quality: qualityMatch,
+              directLinks: [],
+              episodesLink: directLinks[0].link,
+            });
           }
+        }
       });
 
-      if (directLinks.length) {
-          // Extract the season (S01) and Episode (E01) info
-          const seMatch = fullTitle.match(/(S\d{2}E\d{2}|S\d{2}|E\d{2})/)
-          const seasonEpisode = seMatch ? `${seMatch[0]} | ` : '';
-          
-          // --- KEY CHANGE FOR EPISODE BUTTON ---
-          // Since this scraper is likely on a page listing all episodes for one season/quality,
-          // OR it's a direct download page, we need to decide what 'episodesLink' is.
-          // ASSUMPTION: If the type is 'series', the link is for a full season, so it becomes a "download" link.
-          // If the link is actually to a separate episode-listing page, you need a different selector.
-          // Sticking to the original design: 'episodesLink' is the first direct download link.
-          
-          links.push({
-              // Final title for the link entry (e.g., S01 | 1080p | 11.78 GB)
-              title: `${seasonEpisode}${qualityMatch}${fileSizeMatch ? ' | ' + fileSizeMatch : ''}`.trim().replace(/\|$/, '').trim(),
-              quality: qualityMatch,
-              // Keep original structure: episodesLink is the first direct download link
-              episodesLink: directLinks[0].link, 
-              directLinks,
-          });
-      }
+      return {
+        title,
+        synopsis,
+        image,
+        imdbId,
+        type: type as "movie" | "series",
+        linkList: links,
+      };
+    })
+    .catch((err: any) => {
+      console.error("getMeta error:", err instanceof Error ? err.message : String(err));
+      return emptyResult;
     });
-
-    result.linkList = links;
-    return result;
-  } catch (err) {
-    console.log("getMeta error:", err);
-    return emptyResult;
-  }
 };

@@ -56,14 +56,16 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const baseUrl = "https://moviesnation.surf";
+    const { getBaseUrl } = providerContext;
+    const baseUrl = await getBaseUrl("cinevood");
+
+// --- Universal Proxy Auto-Bypass ---
+
     let url: string;
 
+    // --- Build URL for category filter or search query
     if (query && query.trim()) {
-      const params = new URLSearchParams();
-      params.append("s", query.trim());
-      if (page > 1) params.append("paged", page.toString());
-      url = `${baseUrl}/?${params.toString()}`;
+      url = `${baseUrl}/?s=${encodeURIComponent(query)}${page > 1 ? `&paged=${page}` : ""}`;
     } else if (filter) {
       url = filter.startsWith("/")
         ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
@@ -77,35 +79,41 @@ async function fetchPosts({
     const $ = cheerio.load(res.data || "");
 
     const resolveUrl = (href: string) =>
-      href?.startsWith("http") ? href : new URL(href, baseUrl).href;
+      href?.startsWith("http") ? href : new URL(href, url).href;
 
     const seen = new Set<string>();
     const catalog: Post[] = [];
 
-    // ✅ MoviesNation specific selectors
-    $(".blog-wrapper .post-item").each((_, el) => {
-      const card = $(el);
+    // --- HDMovie2 selectors
+    const POST_SELECTORS = [
+      ".pstr_box",
+      "article",
+      ".result-item",
+      ".post",
+      ".item",
+      ".thumbnail",
+      ".latest-movies",
+      ".movie-item",
+    ].join(",");
 
-      let link = card.find("h3.entry-title a").attr("href") || "";
+    $(POST_SELECTORS).each((_, el) => {
+      const card = $(el);
+      let link = card.find("a[href]").first().attr("href") || "";
       if (!link) return;
       link = resolveUrl(link);
       if (seen.has(link)) return;
 
-      // Title
       let title =
-        card.find("h3.entry-title a").text().trim() ||
-        card.find("a[title]").attr("title")?.trim() ||
-        "";
-
-      // ✅ Remove only "Download" prefix if present
-      title = title.replace(/^Download\s*/i, "").trim();
+        card.find("h2").first().text().trim() ||
+        card.find("a[title]").first().attr("title")?.trim() ||
+        card.text().trim();
+      title = title.replace(/\[.*?\]/g, "").replace(/\(.+?\)/g, "").replace(/\s{2,}/g, " ").trim();
       if (!title) return;
 
-      // Image
-      let img =
-        card.find("img").attr("src") ||
-        card.find("img").attr("data-src") ||
-        card.find("img").attr("srcset")?.split(" ")[0] ||
+      const img =
+        card.find("img").first().attr("src") ||
+        card.find("img").first().attr("data-src") ||
+        card.find("img").first().attr("data-original") ||
         "";
       const image = img ? resolveUrl(img) : "";
 
@@ -115,7 +123,10 @@ async function fetchPosts({
 
     return catalog.slice(0, 100);
   } catch (err) {
-    console.error("fetchPosts error:", err instanceof Error ? err.message : String(err));
+    console.error(
+      "HDMovie2 fetchPosts error:",
+      err instanceof Error ? err.message : String(err)
+    );
     return [];
   }
 }

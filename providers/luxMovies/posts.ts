@@ -1,120 +1,182 @@
 import { Post, ProviderContext } from "../types";
 
-const headers = {
-  Accept:
-    "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-  "Cache-Control": "no-store",
-  "Accept-Language": "en-US,en;q=0.9",
-  DNT: "1",
-  "sec-ch-ua":
-    '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": '"Windows"',
-  "Sec-Fetch-Dest": "document",
-  "Sec-Fetch-Mode": "navigate",
-  "Sec-Fetch-Site": "none",
-  "Sec-Fetch-User": "?1",
-  Cookie:
-    "_ga=GA1.1.10613951.1756380104; xla=s4t; _ga_1CG5NQ0F53=GS2.1.s1756380103$o1$g1$t1756380120$j43$l0$h0",
-  "Upgrade-Insecure-Requests": "1",
+const defaultHeaders = {
+  Referer: "https://www.google.com",
   "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  Pragma: "no-cache",
+  "Cache-Control": "no-cache",
 };
 
-export const getPosts = async ({
+// --- Normal catalog posts ---
+export function getPosts({
   filter,
-  page,
-  providerValue,
+  page = 1,
   signal,
   providerContext,
 }: {
-  filter: string;
-  page: number;
-  providerValue: string;
-  signal: AbortSignal;
+  filter?: string;
+  page?: number;
+  signal?: AbortSignal;
   providerContext: ProviderContext;
-}): Promise<Post[]> => {
-  const { getBaseUrl } = providerContext;
-  const baseUrl = await getBaseUrl("lux");
+}): Promise<Post[]> {
+  const { axios, cheerio, getBaseUrl } = providerContext;
 
-  console.log("vegaGetPosts baseUrl:", providerValue, baseUrl);
-  const url = `${baseUrl}/${filter}/page/${page}/`;
-  console.log("lux url:", url);
-  return posts(url, signal, providerContext);
-};
+  return getBaseUrl("luxmovies")
+    .then((baseUrl: string) => {
+      let url: string;
 
-export const getSearchPosts = async ({
+      // Construct normal category/pagination URLs
+      if (filter) {
+        url = filter.startsWith("/")
+          ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
+          : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+      } else {
+        url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
+      }
+
+      return axios
+        .get(url, { headers: defaultHeaders, signal })
+        .then((res: any) => {
+          const $ = cheerio.load(res.data || "");
+          const catalog: Post[] = [];
+
+          const resolveUrl = (href: string) => {
+            if (!href) return "";
+            if (href.startsWith("http")) return href;
+            return `${baseUrl}${href.startsWith("/") ? "" : "/"}${href}`;
+          };
+
+          const seen = new Set<string>();
+
+          $("#moviesGridMain a, .movies-grid a").each((_: number, el: any) => {
+            const anchor = $(el);
+            
+            let link = anchor.attr("href") || "";
+            if (!link) return;
+            link = resolveUrl(link);
+            if (seen.has(link)) return;
+
+            let title = anchor.find(".poster-title").text().trim() || anchor.find("img").attr("alt") || "";
+            title = title.replace(/^Download\s*/i, "").trim();
+            if (!title) return;
+
+            const imgElement = anchor.find(".poster-image img, img").first();
+            let img =
+              imgElement.attr("data-src") ||
+              imgElement.attr("src") ||
+              imgElement.attr("data-lazy-src") ||
+              "";
+            
+            seen.add(link);
+            catalog.push({ title, link, image: img ? resolveUrl(img) : "" });
+          });
+
+          return catalog.slice(0, 100);
+        });
+    })
+    .catch((err: any) => {
+      console.error("getPosts error:", err instanceof Error ? err.message : String(err));
+      return [];
+    });
+}
+
+// --- Search posts (With HTML + JSON Fallback) ---
+export function getSearchPosts({
   searchQuery,
-  page,
-  providerValue,
+  page = 1,
   signal,
   providerContext,
 }: {
   searchQuery: string;
-  page: number;
-  providerValue: string;
-  signal: AbortSignal;
+  page?: number;
+  signal?: AbortSignal;
   providerContext: ProviderContext;
-}): Promise<Post[]> => {
-  const { getBaseUrl } = providerContext;
-  const baseUrl = await getBaseUrl("lux");
+}): Promise<Post[]> {
+  const { axios, cheerio, getBaseUrl } = providerContext;
 
-  console.log("vegaGetPosts baseUrl:", providerValue, baseUrl);
-  const url =
-    page === 1
-      ? `https://c.8man.workers.dev/?url=${baseUrl}/?s=${searchQuery}`
-      : `https://c.8man.workers.dev/?url=${baseUrl}/page/${page}/?s=${searchQuery}`;
-  console.log("lux url:", url);
+  return getBaseUrl("luxmovies")
+    .then((baseUrl: string) => {
+      // Step 1: Query the HTML endpoint exactly as specified
+      const url = `${baseUrl}/search.html?q=${encodeURIComponent(searchQuery.trim())}&page=${page}`;
 
-  return posts(url, signal, providerContext);
-};
+      return axios
+        .get(url, { headers: defaultHeaders, signal })
+        .then((res: any) => {
+          const $ = cheerio.load(res.data || "");
+          const catalog: Post[] = [];
+          const seen = new Set<string>();
 
-async function posts(
-  url: string,
-  signal: AbortSignal,
-  providerContext: ProviderContext
-): Promise<Post[]> {
-  try {
-    const { axios, cheerio } = providerContext;
-    const urlRes = await fetch(url, {
-      headers: {
-        ...headers,
-        Referer: url,
-      },
-      signal,
+          const resolveUrl = (href: string) => {
+            if (!href) return "";
+            if (href.startsWith("http")) return href;
+            return `${baseUrl}${href.startsWith("/") ? "" : "/"}${href}`;
+          };
+
+          // Try parsing standard HTML Results
+          $("#moviesGridMain a, #results-grid a, .movies-grid a").each((_: number, el: any) => {
+            const anchor = $(el);
+            let link = anchor.attr("href") || "";
+            if (!link) return;
+            link = resolveUrl(link);
+            if (seen.has(link)) return;
+
+            let title = anchor.find(".poster-title").text().trim() || anchor.find("img").attr("alt") || "";
+            title = title.replace(/^Download\s*/i, "").trim();
+            if (!title) return;
+
+            const imgElement = anchor.find(".poster-image img, img").first();
+            let img =
+              imgElement.attr("data-src") ||
+              imgElement.attr("src") ||
+              imgElement.attr("data-lazy-src") ||
+              "";
+            
+            seen.add(link);
+            catalog.push({ title, link, image: img ? resolveUrl(img) : "" });
+          });
+
+          // If HTML parsing found results, return them!
+          if (catalog.length > 0) {
+            return catalog;
+          }
+
+          // Step 2: Fallback! If HTML was empty (due to JS rendering), hit the JSON API
+          const jsonUrl = `${baseUrl}/search.php?q=${encodeURIComponent(searchQuery.trim())}&page=${page}`;
+          
+          return axios
+            .get(jsonUrl, { headers: defaultHeaders, signal })
+            .then((jsonRes: any) => {
+              const data = jsonRes.data;
+              
+              if (data && data.hits) {
+                data.hits.forEach((hit: any) => {
+                  const doc = hit.document;
+                  if (doc) {
+                    let title = (doc.post_title || "").replace(/^Download\s*/i, "").trim();
+                    let link = doc.permalink || "";
+                    link = resolveUrl(link);
+                    
+                    let image = doc.post_thumbnail || "";
+                    if (image) image = resolveUrl(image);
+                    
+                    if (title && link) {
+                      catalog.push({ title, link, image });
+                    }
+                  }
+                });
+              }
+              
+              return catalog;
+            })
+            .catch(() => []); // Return empty if JSON API also fails
+        });
+    })
+    .catch((err: any) => {
+      console.error("getSearchPosts error:", err instanceof Error ? err.message : String(err));
+      return [];
     });
-    const $ = cheerio.load(await urlRes.text());
-    const posts: Post[] = [];
-    $(".blog-items")
-      ?.children("article")
-      ?.each((index, element) => {
-        const post = {
-          title:
-            $(element)
-              ?.find("a")
-              ?.attr("title")
-              ?.replace("Download", "")
-              ?.match(/^(.*?)\s*\((\d{4})\)|^(.*?)\s*\((Season \d+)\)/)?.[0] ||
-            $(element)?.find("a")?.attr("title")?.replace("Download", "") ||
-            "",
-
-          link: $(element)?.find("a")?.attr("href") || "",
-          image:
-            $(element).find("a").find("img").attr("data-lazy-src") ||
-            $(element).find("a").find("img").attr("data-src") ||
-            $(element).find("a").find("img").attr("src") ||
-            "",
-        };
-        if (post.image.startsWith("//")) {
-          post.image = "https:" + post.image;
-        }
-        posts.push(post);
-      });
-
-    // console.log(posts);
-    return posts;
-  } catch (error) {
-    console.error("vegaGetPosts error:", error);
-    return [];
-  }
 }

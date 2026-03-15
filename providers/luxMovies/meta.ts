@@ -21,138 +21,154 @@ const headers = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
 };
 
-export const getMeta = async ({
+export const getMeta = ({
   link,
   providerContext,
 }: {
   link: string;
   providerContext: ProviderContext;
 }): Promise<Info> => {
-  try {
-    const { axios, cheerio } = providerContext;
-    const url = link;
-    console.log("url", url);
-    const baseUrl = url.split("/").slice(0, 3).join("/");
-    const response = await axios.get(url, {
+  const { axios, cheerio } = providerContext;
+  const url = link;
+  const baseUrl = url.split("/").slice(0, 3).join("/");
+
+  return axios
+    .get(url, {
       headers: {
         ...headers,
         Referer: baseUrl,
       },
-    });
-    const $ = cheerio.load(response.data);
-    const infoContainer = $(".entry-content,.post-inner");
-    const heading = infoContainer?.find("h3");
-    const imdbId =
-      //@ts-ignore
-      heading?.next("p")?.find("a")?.[0]?.attribs?.href?.match(/tt\d+/g)?.[0] ||
-      infoContainer.text().match(/tt\d+/g)?.[0] ||
-      "";
-    // console.log(imdbId)
+    })
+    .then((response: any) => {
+      const $ = cheerio.load(response.data || "");
+      const rawHtml = $.html();
+      
+      const container = $(".post-content, .page-body, .entry-content, .post-inner").first();
 
-    const type = heading?.next("p")?.text()?.includes("Series Name")
-      ? "series"
-      : "movie";
-    //   console.log(type);
-    // title
-    const titleRegex = /Name: (.+)/;
-    const title = heading?.next("p")?.text()?.match(titleRegex)?.[1] || "";
-    //   console.log(title);
+      // Title Extraction (Fallback chain)
+      const titleText = $("h1.post-title").text() || container.find("h1, h2, h3").first().text() || "";
+      const title = titleText.replace(/Download/i, "").trim();
 
-    // synopsis
-    const synopsisNode = //@ts-ignore
-      infoContainer?.find("p")?.next("h3,h4")?.next("p")?.[0]?.children?.[0];
-    const synopsis =
-      synopsisNode && "data" in synopsisNode ? synopsisNode.data : "";
-    //   console.log(synopsis);
+      // IMDb ID Extraction (Regex search over raw HTML covers nested <a> tags)
+      const imdbMatch = rawHtml.match(/title\/(tt\d+)/);
+      const imdbId = imdbMatch ? imdbMatch[1] : "";
 
-    // image
-    let image =
-      infoContainer?.find("img[data-lazy-src]")?.attr("data-lazy-src") || "";
-    if (image.startsWith("//")) {
-      image = "https:" + image;
-    }
-    // console.log(image);
+      // Type classification (Series/Movie)
+      const type = rawHtml.match(/Series Name|Season[\s]*:/i) ? "series" : "movie";
 
-    // console.log({title, synopsis, image, imdbId, type});
-    /// Links
-    const hr = infoContainer?.first()?.find("hr");
-    const list = hr?.nextUntil("hr");
-    const links: Link[] = [];
-    list.each((index, element: any) => {
-      element = $(element);
-      // title
-      const title = element?.text() || "";
+      // Synopsis
+      let synopsis = "";
+      const plotHeading = container
+        .find("h2, h3, h4")
+        .filter((_i: number, el: any) => !!$(el).text().match(/SYNOPSIS|PLOT/i));
 
-      const quality = element?.text().match(/\d+p\b/)?.[0] || "";
-      // console.log(title);
-      // movieLinks
-      const movieLinks = element
-        ?.next()
-        .find(".dwd-button")
-        .text()
-        .toLowerCase()
-        .includes("download")
-        ? element?.next().find(".dwd-button")?.parent()?.attr("href")
-        : "";
-
-      // episode links
-      const vcloudLinks = element
-        ?.next()
-        .find(
-          ".btn-outline[style='background:linear-gradient(135deg,#ed0b0b,#f2d152); color: white;'],.btn-outline[style='background:linear-gradient(135deg,#ed0b0b,#f2d152); color: #fdf8f2;']"
-        )
-        ?.parent()
-        ?.attr("href");
-      console.log(title);
-      const episodesLink =
-        (vcloudLinks
-          ? vcloudLinks
-          : element
-              ?.next()
-              .find(".dwd-button")
-              .text()
-              .toLowerCase()
-              .includes("episode")
-          ? element?.next().find(".dwd-button")?.parent()?.attr("href")
-          : "") ||
-        element
-          ?.next()
-          .find(
-            ".btn-outline[style='background:linear-gradient(135deg,#0ebac3,#09d261); color: white;']"
-          )
-          ?.parent()
-          ?.attr("href");
-      if (movieLinks || episodesLink) {
-        links.push({
-          title,
-          directLinks: movieLinks
-            ? [{ title: "Movie", link: movieLinks, type: "movie" }]
-            : [],
-          episodesLink,
-          quality,
-        });
+      if (plotHeading.length > 0) {
+        synopsis = plotHeading.next("p").text().trim();
+        if (!synopsis) {
+            synopsis = plotHeading.next().next("p").text().trim();
+        }
       }
+
+      // Image Extraction
+      let image =
+        container.find("img[data-lazy-src]").attr("data-lazy-src") ||
+        container.find("img[src]").first().attr("src") ||
+        "";
+      if (image.startsWith("//")) {
+        image = "https:" + image;
+      }
+
+      // -----------------------------------------------------------------
+      // LINK EXTRACTION
+      // -----------------------------------------------------------------
+      // Find ALL headings denoting quality or a download section (h2 to h6)
+      const headings = container.find("h2, h3, h4, h5, h6").filter((_i: number, el: any) => {
+        const txt = $(el).text().toLowerCase();
+        return /(480p|720p|1080p|2160p|4k)/.test(txt) || txt.includes("download");
+      }).toArray();
+
+      const links: Link[] = [];
+
+      if (!headings || headings.length === 0) {
+        return {
+          title,
+          synopsis,
+          image,
+          imdbId,
+          type: type as "movie" | "series",
+          linkList: [],
+        };
+      }
+
+      $(headings).each((i: number, el: any) => {
+        const $el = $(el);
+        const headingText = $el.text().trim();
+        const qualityMatch = headingText.match(/\d+p|4K\b/i);
+        const quality = qualityMatch ? qualityMatch[0] : "";
+
+        // Iterate through sibling elements until the next heading is reached
+        let nextEl = $el.next();
+        const anchors: any[] = [];
+
+        while (nextEl.length > 0 && !nextEl.is("h2, h3, h4, h5, h6")) {
+          nextEl.find("a").each((_idx: number, aEl: any) => anchors.push(aEl));
+          if (nextEl.is("a")) anchors.push(nextEl[0]); // Case where top level sibling is an anchor
+          nextEl = nextEl.next();
+        }
+
+        if (anchors.length > 0) {
+          // Default to the first found button link
+          let targetLink = $(anchors[0]).attr("href") || "";
+
+          // Iterate to prioritize specific high-quality links (like VCloud) if present
+          $(anchors).each((_idx: number, aEl: any) => {
+            const btnText = $(aEl).text().toLowerCase();
+            const href = $(aEl).attr("href");
+            if (!href) return;
+            
+            if (btnText.includes("v-cloud") || btnText.includes("vcloud")) {
+              targetLink = href;
+            }
+          });
+
+          if (targetLink) {
+            if (type === "movie") {
+              links.push({
+                title: headingText,
+                quality: quality,
+                directLinks: [{ title: "Download", link: targetLink, type: "movie" }],
+                episodesLink: "",
+              });
+            } else {
+              links.push({
+                title: headingText,
+                quality: quality,
+                directLinks: [],
+                episodesLink: targetLink, // Forward to episodes.ts
+              });
+            }
+          }
+        }
+      });
+
+      return {
+        title,
+        synopsis,
+        image,
+        imdbId,
+        type: type as "movie" | "series",
+        linkList: links,
+      };
+    })
+    .catch((error: any) => {
+      console.error("getMeta error:", error);
+      return {
+        title: "",
+        synopsis: "",
+        image: "",
+        imdbId: "",
+        type: "movie" as const,
+        linkList: [],
+      };
     });
-    // console.log(links);
-    return {
-      title,
-      synopsis,
-      image,
-      imdbId,
-      type,
-      linkList: links,
-    };
-  } catch (error) {
-    console.log("getInfo error");
-    console.error(error);
-    // ToastAndroid.show('No response', ToastAndroid.SHORT);
-    return {
-      title: "",
-      synopsis: "",
-      image: "",
-      imdbId: "",
-      type: "",
-      linkList: [],
-    };
-  }
 };

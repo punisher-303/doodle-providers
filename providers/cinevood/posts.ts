@@ -56,7 +56,11 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const baseUrl = "https://kmmovies.art";
+    const { getBaseUrl } = providerContext;
+    const baseUrl = await getBaseUrl("cinevood");
+
+// --- Universal Proxy Auto-Bypass ---
+
     let url: string;
 
     // --- Build URL for category filter or search query
