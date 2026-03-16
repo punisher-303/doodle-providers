@@ -149,9 +149,9 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
       try {
         let torrentioUrl = "";
         if (type === 'movie' && imdbId) {
-          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi,glodls,limetorrents,pirateiro,torrentproject,vostfree/stream/movie/${imdbId}.json`;
+          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi,glodls,limetorrents,pirateiro,torrentproject,vostfree,anidex,nekobt,rutor,rutracker/stream/movie/${imdbId}.json`;
         } else if (type === 'series' && imdbId && season && episode) {
-          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi,glodls,limetorrents,pirateiro,torrentproject,vostfree/stream/series/${imdbId}:${season}:${episode}.json`;
+          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi,glodls,limetorrents,pirateiro,torrentproject,vostfree,anidex,nekobt,rutor,rutracker/stream/series/${imdbId}:${season}:${episode}.json`;
         }
 
         if (torrentioUrl) {
