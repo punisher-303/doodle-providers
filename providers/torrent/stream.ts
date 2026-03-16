@@ -87,6 +87,12 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   const { imdbId, season, episode, title, showTitle, year, keyword } = payload;
   if (!imdbId && !title && !showTitle && !keyword) return [];
 
+  // Helper to sanitize search strings for torrent trackers
+  const cleanStr = (s: string) => s ? s.replace(/[&]/g, ' ').replace(/\s+/g, ' ').trim() : '';
+  
+  const cleanTitle = cleanStr(title);
+  const cleanShowTitle = cleanStr(showTitle);
+
   const streams: Stream[] = [];
   
   // 1. Construct prioritized queries for trackers
@@ -96,31 +102,74 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   } else if (season && episode) {
     const s = season.toString().padStart(2, '0');
     const e = episode.toString().padStart(2, '0');
-    if (showTitle) querySet.add(`${showTitle} S${s}E${e}`);
+    if (cleanShowTitle) querySet.add(`${cleanShowTitle} S${s}E${e}`);
     if (imdbId) querySet.add(`${imdbId} S${s}E${e}`);
   } else {
-    // For Movies: Try IMDB ID, then Title + Year, then Title
+    // For Movies: Prioritize Title search as fallback trackers prefer text over IMDB IDs
+    if (cleanTitle && year) querySet.add(`${cleanTitle} ${year}`);
     if (imdbId) querySet.add(imdbId);
-    if (title && year) querySet.add(`${title} ${year}`);
-    if (title) querySet.add(title);
+    if (cleanTitle) querySet.add(cleanTitle);
   }
   const queries = Array.from(querySet);
 
   // Helper for parallel execution of all queries across all scrapers
   const runScraper = async (name: string, fn: (q: string) => Promise<Stream[]>) => {
-    // Run all queries in parallel for this scraper
+    let scraperCount = 0;
     const scraperTasks = queries.map(async (q) => {
         try {
             const results = await fn(q);
+            scraperCount += results.length;
             streams.push(...results);
         } catch (e: any) {
-            console.error(`Scraper ${name} failed for query ${q}:`, e.message);
+            console.error(`[Provider] ${name} failed for "${q}":`, e.message);
         }
     });
     await Promise.allSettled(scraperTasks);
+    console.log(`[Provider] ${name}: Found ${scraperCount} results`);
   };
 
   const tasks = [
+    // 0. Torrentio (The Gold Standard - Aggregated Search)
+    (async () => {
+      try {
+        let torrentioUrl = "";
+        if (type === 'movie' && imdbId) {
+          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi/stream/movie/${imdbId}.json`;
+        } else if (type === 'series' && imdbId && season && episode) {
+          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi/stream/series/${imdbId}:${season}:${episode}.json`;
+        }
+
+        if (torrentioUrl) {
+          const res = await providerContext.axios.get(torrentioUrl, { 
+            signal, 
+            timeout: 8000,
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' } 
+          });
+          if (res.data?.streams) {
+            const results = res.data.streams.map((s: any) => {
+                const nameMatch = s.title.split("\n");
+                const torrentName = nameMatch[0] || s.name;
+                const details = nameMatch.slice(1).join(" | ");
+                const qlt = detectQuality(torrentName) || detectQuality(s.title);
+                
+                return {
+                    name: torrentName,
+                    server: `Torrio | ${qlt || 'HD'} | ${detectAudioTags(s.title).join(", ")} | ${details}`,
+                    link: s.infoHash ? `magnet:?xt=urn:btih:${s.infoHash}&dn=${encodeURIComponent(torrentName)}` : s.url,
+                    type: "torrent",
+                    quality: qlt as any,
+                    isDebrid: true
+                };
+            });
+            streams.push(...results);
+            console.log(`[Provider] Torrentio: Found ${results.length} results`);
+          } else {
+            console.log(`[Provider] Torrentio: 0 results (Blocked or Not Available)`);
+          }
+        }
+      } catch (e: any) { console.error("[Provider] Torrentio failed:", e.message); }
+    })(),
+
     // 5. Knaben (PlayTorrio's Primary Source)
     runScraper("Knaben", async (q) => {
         // Knaben format: https://knaben.org/search/<query>/0/1/seeders
@@ -128,7 +177,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         const res = await providerContext.axios.get(url, { 
             signal, 
             timeout: 8000, 
-            headers: { 'User-Agent': 'Mozilla/5.0' } 
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' } 
         });
         const $ = providerContext.cheerio.load(res.data);
         const results: Stream[] = [];
@@ -158,48 +207,15 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         });
         return results;
     }),
-    // 0. Torrentio (The Gold Standard - Aggregated Search)
-    (async () => {
-      try {
-        let torrentioUrl = "";
-        if (type === 'movie' && imdbId) {
-          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi/stream/movie/${imdbId}.json`;
-        } else if (type === 'series' && imdbId && season && episode) {
-          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi/stream/series/${imdbId}:${season}:${episode}.json`;
-        }
-
-        if (torrentioUrl) {
-          const res = await providerContext.axios.get(torrentioUrl, { 
-            signal, 
-            timeout: 8000,
-            headers: { 'User-Agent': 'Mozilla/5.0' } 
-          });
-          if (res.data?.streams) {
-            const results = res.data.streams.map((s: any) => {
-                const nameMatch = s.title.split("\n");
-                const torrentName = nameMatch[0] || s.name;
-                const details = nameMatch.slice(1).join(" | ");
-                const qlt = detectQuality(torrentName) || detectQuality(s.title);
-                
-                return {
-                    name: torrentName,
-                    server: `Torrio | ${qlt || 'HD'} | ${detectAudioTags(s.title).join(", ")} | ${details}`,
-                    link: s.infoHash ? `magnet:?xt=urn:btih:${s.infoHash}&dn=${encodeURIComponent(torrentName)}` : s.url,
-                    type: "torrent",
-                    quality: qlt as any,
-                    isDebrid: true
-                };
-            });
-            streams.push(...results);
-          }
-        }
-      } catch (e: any) { console.error("Torrentio failed:", e.message); }
-    })(),
 
     // 1. TorrentGalaxy (Fallback Scraper)
     runScraper("TGx", async (q) => {
       const url = `https://torrentgalaxy.to/torrents.php?search=${encodeURIComponent(q)}&sort=seeders&order=desc`;
-      const res = await providerContext.axios.get(url, { signal, timeout: 6000 });
+      const res = await providerContext.axios.get(url, { 
+        signal, 
+        timeout: 8000,
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
+      });
       const $ = providerContext.cheerio.load(res.data);
       const results: Stream[] = [];
       $(".tgxtable tr.tgxtablerow").each((_, el) => {
@@ -239,8 +255,11 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
               isDebrid: true
             }));
             streams.push(...results);
+            console.log(`[Provider] YTS: Found ${results.length} results`);
+          } else {
+            console.log(`[Provider] YTS: 0 results`);
           }
-      } catch (e: any) { console.error("YTS failed:", e.message); }
+      } catch (e: any) { console.error("[Provider] YTS failed:", e.message); }
     })(),
 
     // 3. BitSearch (Fallback Scraper)
@@ -275,7 +294,11 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         // Use a more relaxed search for 1337x
         const searchQ = q.includes('tt') ? q : q.replace(/[^a-zA-Z0-9 ]/g, ' ').substring(0, 50);
         const url = `https://1337x.to/search/${encodeURIComponent(searchQ)}/1/`;
-        const res = await providerContext.axios.get(url, { signal, timeout: 8000 });
+        const res = await providerContext.axios.get(url, { 
+            signal, 
+            timeout: 8000,
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
+        });
         const $ = providerContext.cheerio.load(res.data);
         const results: Stream[] = [];
         
@@ -285,7 +308,11 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             const detailLink = titleEl.attr("href");
             if (detailLink) {
                 try {
-                    const detailRes = await providerContext.axios.get(`https://1337x.to${detailLink}`, { signal, timeout: 5000 });
+                    const detailRes = await providerContext.axios.get(`https://1337x.to${detailLink}`, { 
+                        signal, 
+                        timeout: 5000,
+                        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
+                    });
                     const $$ = providerContext.cheerio.load(detailRes.data);
                     const magnet = $$('a[href^="magnet:"]').attr("href");
                     if (magnet) {
