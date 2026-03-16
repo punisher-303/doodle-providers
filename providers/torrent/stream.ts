@@ -103,7 +103,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
 
   logger(`[Provider] getStream started for: ${cleanTitle || cleanShowTitle} (${imdbId || 'No IMDB'})`);
   logger(`[Provider] Full Payload: ${JSON.stringify(payload)}`);
-  logger(`[Provider] Secure Proxy: ${settingsStorage.isNetworkProxyEnabled() ? 'ON' : 'OFF'}`);
+  logger(`[Provider] Secure Proxy: ${providerContext.axios.defaults.baseURL || 'Default'}`);
 
   const streams: Stream[] = [];
   
@@ -149,9 +149,9 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
       try {
         let torrentioUrl = "";
         if (type === 'movie' && imdbId) {
-          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi/stream/movie/${imdbId}.json`;
+          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi,glodls,limetorrents,pirateiro,torrentproject,vostfree/stream/movie/${imdbId}.json`;
         } else if (type === 'series' && imdbId && season && episode) {
-          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi/stream/series/${imdbId}:${season}:${episode}.json`;
+          torrentioUrl = `https://torrentio.strem.fun/providers=yts,eztv,rarbg,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,horriblesubs,nyaasi,tokyotosho,sugoi,glodls,limetorrents,pirateiro,torrentproject,vostfree/stream/series/${imdbId}:${season}:${episode}.json`;
         }
 
         if (torrentioUrl) {

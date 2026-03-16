@@ -31,6 +31,11 @@ export const getMeta = async ({ link, provider, providerContext }: { link: strin
     const data = res.data;
     const imdbId = data.external_ids?.imdb_id || "";
 
+    if (providerContext.nativeLog) {
+      providerContext.nativeLog(`[Meta] TMDB Lookup Success for: ${data.title || data.name}`);
+      providerContext.nativeLog(`[Meta] Extracted IMDb ID: ${imdbId || 'MISSING'}`);
+    }
+
     return {
       title: data.title || data.name,
       image: `https://image.tmdb.org/t/p/w500${data.poster_path}`,
