@@ -93,6 +93,17 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   const cleanTitle = cleanStr(title);
   const cleanShowTitle = cleanStr(showTitle);
 
+  // Logger helper
+  const logger = (msg: string) => {
+    if (providerContext.nativeLog) {
+        providerContext.nativeLog(msg);
+    }
+    console.log(msg);
+  };
+
+  logger(`[Provider] getStream started for: ${cleanTitle || cleanShowTitle} (${imdbId || 'No IMDB'})`);
+  logger(`[Provider] Full Payload: ${JSON.stringify(payload)}`);
+
   const streams: Stream[] = [];
   
   // 1. Construct prioritized queries for trackers
@@ -111,6 +122,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
     if (cleanTitle) querySet.add(cleanTitle);
   }
   const queries = Array.from(querySet);
+  logger(`[Provider] Generated Queries: ${queries.join(" | ")}`);
 
   // Helper for parallel execution of all queries across all scrapers
   const runScraper = async (name: string, fn: (q: string) => Promise<Stream[]>) => {
@@ -121,11 +133,11 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             scraperCount += results.length;
             streams.push(...results);
         } catch (e: any) {
-            console.error(`[Provider] ${name} failed for "${q}":`, e.message);
+            logger(`[Provider] ${name} error for "${q}": ${e.message}`);
         }
     });
     await Promise.allSettled(scraperTasks);
-    console.log(`[Provider] ${name}: Found ${scraperCount} results`);
+    logger(`[Provider] ${name}: Found ${scraperCount} results`);
   };
 
   const tasks = [
@@ -140,9 +152,10 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         }
 
         if (torrentioUrl) {
+          logger(`[Provider] Torrentio Request: ${torrentioUrl}`);
           const res = await providerContext.axios.get(torrentioUrl, { 
             signal, 
-            timeout: 8000,
+            timeout: 10000,
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' } 
           });
           if (res.data?.streams) {
@@ -162,12 +175,14 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
                 };
             });
             streams.push(...results);
-            console.log(`[Provider] Torrentio: Found ${results.length} results`);
+            logger(`[Provider] Torrentio: Found ${results.length} results`);
           } else {
-            console.log(`[Provider] Torrentio: 0 results (Blocked or Not Available)`);
+            logger(`[Provider] Torrentio: 0 results (Empty list)`);
           }
+        } else {
+            logger(`[Provider] Torrentio: Skipped (No valid IMDB ID for Torrentio)`);
         }
-      } catch (e: any) { console.error("[Provider] Torrentio failed:", e.message); }
+      } catch (e: any) { logger(`[Provider] Torrentio request failed: ${e.message}`); }
     })(),
 
     // 5. Knaben (PlayTorrio's Primary Source)
