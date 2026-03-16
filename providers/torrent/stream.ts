@@ -103,6 +103,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
 
   logger(`[Provider] getStream started for: ${cleanTitle || cleanShowTitle} (${imdbId || 'No IMDB'})`);
   logger(`[Provider] Full Payload: ${JSON.stringify(payload)}`);
+  logger(`[Provider] Secure Proxy: ${settingsStorage.isNetworkProxyEnabled() ? 'ON' : 'OFF'}`);
 
   const streams: Stream[] = [];
   
@@ -124,7 +125,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   const queries = Array.from(querySet);
   logger(`[Provider] Generated Queries: ${queries.join(" | ")}`);
 
-  // Helper for parallel execution of all queries across all scrapers
+  // Helper for parallel execution with deep logs
   const runScraper = async (name: string, fn: (q: string) => Promise<Stream[]>) => {
     let scraperCount = 0;
     const scraperTasks = queries.map(async (q) => {
@@ -133,12 +134,14 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             scraperCount += results.length;
             streams.push(...results);
         } catch (e: any) {
-            logger(`[Provider] ${name} error for "${q}": ${e.message}`);
+            logger(`[Provider] ${name} FAILED for "${q}": ${e.message}`);
         }
     });
     await Promise.allSettled(scraperTasks);
-    logger(`[Provider] ${name}: Found ${scraperCount} results`);
+    logger(`[Provider] ${name} Summary: Found ${scraperCount} total results`);
   };
+
+  const commonUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
   const tasks = [
     // 0. Torrentio (The Gold Standard - Aggregated Search)
@@ -152,12 +155,14 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         }
 
         if (torrentioUrl) {
-          logger(`[Provider] Torrentio Request: ${torrentioUrl}`);
+          logger(`[Provider] Torrentio URL: ${torrentioUrl}`);
           const res = await providerContext.axios.get(torrentioUrl, { 
             signal, 
-            timeout: 10000,
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' } 
+            timeout: 12000,
+            headers: { 'User-Agent': commonUA } 
           });
+          logger(`[Provider] Torrentio Status: ${res.status} | Length: ${JSON.stringify(res.data).length}`);
+
           if (res.data?.streams) {
             const results = res.data.streams.map((s: any) => {
                 const nameMatch = s.title.split("\n");
@@ -175,25 +180,23 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
                 };
             });
             streams.push(...results);
-            logger(`[Provider] Torrentio: Found ${results.length} results`);
+            logger(`[Provider] Torrentio: Parsed ${results.length} streams`);
           } else {
-            logger(`[Provider] Torrentio: 0 results (Empty list)`);
+            logger(`[Provider] Torrentio: No 'streams' field in JSON`);
           }
-        } else {
-            logger(`[Provider] Torrentio: Skipped (No valid IMDB ID for Torrentio)`);
         }
-      } catch (e: any) { logger(`[Provider] Torrentio request failed: ${e.message}`); }
+      } catch (e: any) { logger(`[Provider] Torrentio CRITICAL: ${e.message}`); }
     })(),
 
-    // 5. Knaben (PlayTorrio's Primary Source)
     runScraper("Knaben", async (q) => {
-        // Knaben format: https://knaben.org/search/<query>/0/1/seeders
         const url = `https://knaben.org/search/${encodeURIComponent(q)}/0/1/seeders`;
+        logger(`[Provider] Knaben URL: ${url}`);
         const res = await providerContext.axios.get(url, { 
             signal, 
-            timeout: 8000, 
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' } 
+            timeout: 10000, 
+            headers: { 'User-Agent': commonUA } 
         });
+        logger(`[Provider] Knaben Status: ${res.status} | Length: ${res.data.length}`);
         const $ = providerContext.cheerio.load(res.data);
         const results: Stream[] = [];
         
@@ -226,11 +229,13 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
     // 1. TorrentGalaxy (Fallback Scraper)
     runScraper("TGx", async (q) => {
       const url = `https://torrentgalaxy.to/torrents.php?search=${encodeURIComponent(q)}&sort=seeders&order=desc`;
+      logger(`[Provider] TGx URL: ${url}`);
       const res = await providerContext.axios.get(url, { 
         signal, 
-        timeout: 8000,
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
+        timeout: 10000,
+        headers: { 'User-Agent': commonUA }
       });
+      logger(`[Provider] TGx Status: ${res.status} | Length: ${res.data.length}`);
       const $ = providerContext.cheerio.load(res.data);
       const results: Stream[] = [];
       $(".tgxtable tr.tgxtablerow").each((_, el) => {
@@ -309,11 +314,13 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
         // Use a more relaxed search for 1337x
         const searchQ = q.includes('tt') ? q : q.replace(/[^a-zA-Z0-9 ]/g, ' ').substring(0, 50);
         const url = `https://1337x.to/search/${encodeURIComponent(searchQ)}/1/`;
+        logger(`[Provider] 1337x URL: ${url}`);
         const res = await providerContext.axios.get(url, { 
             signal, 
-            timeout: 8000,
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
+            timeout: 10000,
+            headers: { 'User-Agent': commonUA }
         });
+        logger(`[Provider] 1337x Status: ${res.status} | Length: ${res.data.length}`);
         const $ = providerContext.cheerio.load(res.data);
         const results: Stream[] = [];
         
