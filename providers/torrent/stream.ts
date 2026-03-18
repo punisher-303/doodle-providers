@@ -144,6 +144,42 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   const commonUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
   const tasks = [
+    runScraper("Knaben", async (q) => {
+        const url = `https://knaben.org/search/${encodeURIComponent(q)}/0/1/seeders`;
+        logger(`[Provider] Knaben URL: ${url}`);
+        const res = await providerContext.axios.get(url, { 
+            signal, 
+            timeout: 8000, // Reduced from 10s for speed
+            headers: { 'User-Agent': commonUA } 
+        });
+        logger(`[Provider] Knaben Status: ${res.status} | Length: ${res.data.length}`);
+        const $ = providerContext.cheerio.load(res.data);
+        const results: Stream[] = [];
+        
+        $("table tr").each((_, el) => {
+            const magnetLink = $(el).find('a[href^="magnet:"]');
+            const magnet = magnetLink.attr("href");
+            
+            if (magnet) {
+                const n = magnetLink.attr("title") || magnetLink.text().trim();
+                const s = $(el).find("td").eq(2).text().trim(); // Size
+                const sd = $(el).find("td").eq(4).text().trim(); // Seeders
+                const source = $(el).find("td").eq(6).find("a").text().trim() || "Knaben";
+                const qlt = detectQuality(n);
+                
+                results.push({
+                    name: n,
+                    server: `Knaben | ${qlt || 'HD'} | ${detectAudioTags(n).join(", ")} | ${s} | ${sd}S | ${source}`,
+                    link: magnet,
+                    type: "torrent",
+                    quality: qlt as any,
+                    isDebrid: true
+                });
+            }
+        });
+        return results;
+    }),
+
     // 0. Torrentio (The Gold Standard - Aggregated Search)
     (async () => {
       try {
@@ -158,7 +194,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
           logger(`[Provider] Torrentio URL: ${torrentioUrl}`);
           const res = await providerContext.axios.get(torrentioUrl, { 
             signal, 
-            timeout: 12000,
+            timeout: 10000, // Reduced from 12s
             headers: { 'User-Agent': commonUA } 
           });
           logger(`[Provider] Torrentio Status: ${res.status} | Length: ${JSON.stringify(res.data).length}`);
@@ -181,50 +217,10 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             });
             streams.push(...results);
             logger(`[Provider] Torrentio: Parsed ${results.length} streams`);
-          } else {
-            logger(`[Provider] Torrentio: No 'streams' field in JSON`);
           }
         }
       } catch (e: any) { logger(`[Provider] Torrentio CRITICAL: ${e.message}`); }
     })(),
-
-    runScraper("Knaben", async (q) => {
-        const url = `https://knaben.org/search/${encodeURIComponent(q)}/0/1/seeders`;
-        logger(`[Provider] Knaben URL: ${url}`);
-        const res = await providerContext.axios.get(url, { 
-            signal, 
-            timeout: 10000, 
-            headers: { 'User-Agent': commonUA } 
-        });
-        logger(`[Provider] Knaben Status: ${res.status} | Length: ${res.data.length}`);
-        const $ = providerContext.cheerio.load(res.data);
-        const results: Stream[] = [];
-        
-        // Results are in <tr> rows inside a <table>
-        $("table tr").each((_, el) => {
-            const magnetLink = $(el).find('a[href^="magnet:"]');
-            const magnet = magnetLink.attr("href");
-            
-            if (magnet) {
-                // Must get full title from 'title' attribute if available
-                const n = magnetLink.attr("title") || magnetLink.text().trim();
-                const s = $(el).find("td").eq(2).text().trim(); // Size
-                const sd = $(el).find("td").eq(4).text().trim(); // Seeders
-                const source = $(el).find("td").eq(6).find("a").text().trim() || "Knaben";
-                const qlt = detectQuality(n);
-                
-                results.push({
-                    name: n,
-                    server: `Knaben | ${qlt || 'HD'} | ${detectAudioTags(n).join(", ")} | ${s} | ${sd}S | ${source}`,
-                    link: magnet,
-                    type: "torrent",
-                    quality: qlt as any,
-                    isDebrid: true
-                });
-            }
-        });
-        return results;
-    }),
 
     // 1. TorrentGalaxy (Fallback Scraper)
     runScraper("TGx", async (q) => {
@@ -232,7 +228,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
       logger(`[Provider] TGx URL: ${url}`);
       const res = await providerContext.axios.get(url, { 
         signal, 
-        timeout: 10000,
+        timeout: 8000,
         headers: { 'User-Agent': commonUA }
       });
       logger(`[Provider] TGx Status: ${res.status} | Length: ${res.data.length}`);
@@ -275,11 +271,8 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
               isDebrid: true
             }));
             streams.push(...results);
-            console.log(`[Provider] YTS: Found ${results.length} results`);
-          } else {
-            console.log(`[Provider] YTS: 0 results`);
           }
-      } catch (e: any) { console.error("[Provider] YTS failed:", e.message); }
+      } catch (e: any) { /* silent */ }
     })(),
 
     // 3. BitSearch (Fallback Scraper)
@@ -311,13 +304,12 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
 
     // 4. 1337x (Fallback Scraper - Top Results only)
     runScraper("1337x", async (q) => {
-        // Use a more relaxed search for 1337x
         const searchQ = q.includes('tt') ? q : q.replace(/[^a-zA-Z0-9 ]/g, ' ').substring(0, 50);
         const url = `https://1337x.to/search/${encodeURIComponent(searchQ)}/1/`;
         logger(`[Provider] 1337x URL: ${url}`);
         const res = await providerContext.axios.get(url, { 
             signal, 
-            timeout: 10000,
+            timeout: 8000, // Reduced from 10s
             headers: { 'User-Agent': commonUA }
         });
         logger(`[Provider] 1337x Status: ${res.status} | Length: ${res.data.length}`);
@@ -332,8 +324,8 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
                 try {
                     const detailRes = await providerContext.axios.get(`https://1337x.to${detailLink}`, { 
                         signal, 
-                        timeout: 5000,
-                        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
+                        timeout: 4000, // Reduced from 5s
+                        headers: { 'User-Agent': commonUA }
                     });
                     const $$ = providerContext.cheerio.load(detailRes.data);
                     const magnet = $$('a[href^="magnet:"]').attr("href");
@@ -370,10 +362,19 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
     return true;
   });
 
-  // Final Sort: Torrio results first, then Seeders
+  // Final Sort: Knaben first, then Torrio, then Seeders
   return finalStreams.sort((a, b) => {
-      if (a.server.includes("Torrio") && !b.server.includes("Torrio")) return -1;
-      if (b.server.includes("Torrio") && !a.server.includes("Torrio")) return 1;
+      // 1. Knaben Priority
+      const aIsKnaben = a.server.startsWith("Knaben");
+      const bIsKnaben = b.server.startsWith("Knaben");
+      if (aIsKnaben && !bIsKnaben) return -1;
+      if (bIsKnaben && !aIsKnaben) return 1;
+
+      // 2. Torrio Priority (if both are Knaben or both are not)
+      const aIsTorrio = a.server.includes("Torrio");
+      const bIsTorrio = b.server.includes("Torrio");
+      if (aIsTorrio && !bIsTorrio) return -1;
+      if (bIsTorrio && !aIsTorrio) return 1;
       
       const getSeeders = (s: string) => {
         const match = s.match(/(\d+)S/);

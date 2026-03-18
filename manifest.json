@@ -2,7 +2,7 @@
   {
     "display_name": "Torrent",
     "value": "torrent",
-    "version": "11.2",
+    "version": "11.3",
     "icon": "https://raw.githubusercontent.com/punisher-303/DoodleMoviesApp/main/assets/icon.png",
     "type": "global",
     "category": "movie/tvshow",
