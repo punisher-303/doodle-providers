@@ -1,7 +1,12 @@
-import { Catalog } from "../types";
-
-export const catalog: Catalog[] = [
-  { title: "MovieBox Home", filter: "home" },
+export const catalog = [
+  {
+    title: "Latest Movies",
+    filter: "movies",
+  },
+  {
+    title: "TV Series",
+    filter: "tv",
+  },
 ];
 
-export const genres: Catalog[] = [];
+export const genres = [];
