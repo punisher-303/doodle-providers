@@ -549,7 +549,7 @@
   {
     "display_name": "DramaKey",
     "value": "DramaKey",
-    "version": "2.2",
+    "version": "2.3",
     "icon": "https://vfiles.wetvinfo.com/vupload/20200713/favicon.ico",
     "type": "global",
     "category": "cdrama",
@@ -612,7 +612,7 @@
   {
     "display_name": "Dramafull",
     "value": "Dramafull",
-    "version": "2.1",
+    "version": "2.2",
     "icon": "https://dramafull.cc/logo-white.webp",
     "type": "global",
     "category": "kdrama",
