@@ -124,6 +124,15 @@
     "disabled": false
   },
   {
+    "display_name": "MovieBox Pro",
+    "value": "movieBoxAPI",
+    "version": "1.0",
+    "icon": "https://moviebox.ph/favicon.ico",
+    "type": "global",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
     "display_name": "MovieBox",
     "value": "movieBox",
     "version": "2.7",
