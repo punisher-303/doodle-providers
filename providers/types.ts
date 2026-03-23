@@ -24,35 +24,23 @@ export type TextTracks = {
 
 // getStream
 export interface Stream {
-  name: string;
   server: string;
   link: string;
   type: string;
   quality?: "360" | "480" | "720" | "1080" | "2160";
   subtitles?: TextTracks;
   headers?: any;
-  isDebrid?: boolean;
-  isResolved?: boolean;
 }
 
 // getInfo
-export interface Cast {
-  id: string | number;
-  name: string;
-  character?: string;
-  image?: string;
-  profile_path?: string; // TMDB compatibility
-}
-
 export interface Info {
   title: string;
   image: string;
   synopsis: string;
   imdbId: string;
   type: string;
-  background?: string;
   tags?: string[];
-  cast?: Cast[] | string[];
+  cast?: string[];
   rating?: string;
   linkList: Link[];
 }
@@ -69,8 +57,7 @@ export interface Link {
   directLinks?: {
     title: string;
     link: string;
-    quality?: string;
-    type?: "movie" | "series" | "episode";
+    type?: "movie" | "series";
   }[];
 }
 
@@ -148,9 +135,6 @@ export type ProviderContext = {
   getBaseUrl: (providerValue: string) => Promise<string>;
   commonHeaders: Record<string, string>;
   cheerio: typeof cheerio;
-  nativeLog?: (message: string) => void;
-  providerManager?: any;
-  extensionManager?: any;
   extractors: {
     hubcloudExtracter: (link: string, signal: AbortSignal) => Promise<Stream[]>;
     gofileExtracter: (id: string) => Promise<{
