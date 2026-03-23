@@ -53,8 +53,7 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const { getBaseUrl } = providerContext;
-    const baseUrl = (await getBaseUrl("ssrmovies")) || "https://ssrmovies.ngo/";
+    const baseUrl = "https://ssrmovies.church";
     let url: string;
 
     if (query && query.trim() && query.trim().toLowerCase() !== "what are you looking for?") {

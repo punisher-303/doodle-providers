@@ -56,8 +56,7 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const { getBaseUrl } = providerContext;
-    const baseUrl = (await getBaseUrl("moviesflix")) || "https://movieseflix.co/";
+    const baseUrl = "https://themoviesflix.website";
     let url: string;
 
     // Search URL
@@ -84,22 +83,28 @@ async function fetchPosts({
     const seen = new Set<string>();
     const catalog: Post[] = [];
 
-    // ✅ Fetch posts (Using new figure structure)
-    $("figure").each((_, el) => {
+    // ✅ Fetch posts
+    $("article.latestpost").each((_, el) => {
       const card = $(el);
 
       // Link
-      let link = card.find("a").attr("href") || "";
+      let link = card.find("header.entry-header h1.entry-title a, header.entry-header h2.entry-title a").attr("href") || "";
       if (!link) return;
       link = resolveUrl(link);
       if (seen.has(link)) return;
 
       // Title: remove "Download"
-      let title = card.find("p").text().replace(/^Download\s*/i, "").trim();
+      let title = card.find("header.entry-header h1.entry-title a, header.entry-header h2.entry-title a")
+        .text()
+        .replace(/^Download\s*/i, "")
+        .trim();
       if (!title) return;
 
       // Image
-      let img = card.find("img").attr("src") || card.find("img").attr("data-src") || "";
+      let img =
+        card.find("a#featured-thumbnail img").attr("src") ||
+        card.find("a#featured-thumbnail img").attr("data-src") ||
+        "";
       const image = img ? resolveUrl(img) : "";
 
       seen.add(link);

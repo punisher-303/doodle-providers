@@ -11,6 +11,7 @@ const defaultHeaders = {
   "Cache-Control": "no-cache",
 };
 
+// --- Normal catalog posts ---
 export async function getPosts({
   filter,
   page = 1,
@@ -22,9 +23,7 @@ export async function getPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl } = providerContext;
-  const baseUrl = (await getBaseUrl("showbox")) || "https://www.showbox.media";
-  return fetchPosts({ filter, page, query: "", signal, providerContext, baseUrl });
+  return fetchPosts({ filter, page, query: "", signal, providerContext });
 }
 
 // --- Search posts ---
@@ -39,9 +38,7 @@ export async function getSearchPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl } = providerContext;
-  const baseUrl = (await getBaseUrl("showbox")) || "https://www.showbox.media";
-  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext, baseUrl });
+  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext });
 }
 
 // --- Core function ---
@@ -51,16 +48,15 @@ async function fetchPosts({
   page = 1,
   signal,
   providerContext,
-  baseUrl,
 }: {
   filter?: string;
   query?: string;
   page?: number;
   signal?: AbortSignal;
   providerContext: ProviderContext;
-  baseUrl: string;
 }): Promise<Post[]> {
   try {
+    const baseUrl = "https://hdbolly4u.ro";
     let url: string;
 
     const params = new URLSearchParams();

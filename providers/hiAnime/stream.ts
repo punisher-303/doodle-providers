@@ -1,7 +1,29 @@
 import { ProviderContext, Stream } from "../types";
 
+const headers = {
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+  "Cache-Control": "no-store",
+  "Accept-Language": "en-US,en;q=0.9",
+  DNT: "1",
+  "sec-ch-ua":
+    '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": '"Windows"',
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  Cookie:
+    "xla=s4t; _ga=GA1.1.1081149560.1756378968; _ga_BLZGKYN5PF=GS2.1.s1756378968$o1$g1$t1756378984$j44$l0$h0",
+  "Upgrade-Insecure-Requests": "1",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+};
+
 export async function getStream({
   link,
+  type,
   signal,
   providerContext,
 }: {
@@ -10,61 +32,86 @@ export async function getStream({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }) {
-  const { getBaseUrl, axios, cheerio, commonHeaders: headers } = providerContext;
-
+  const { axios, cheerio, extractors } = providerContext;
+  const { hubcloudExtracter } = extractors;
   try {
-    const baseUrlRaw = await getBaseUrl("hianime");
-    const baseUrl = baseUrlRaw.replace(/\/$/, "");
+    const streamLinks: Stream[] = [];
+    console.log("dotlink", link);
+    if (type === "movie") {
+      // vlink
+      const dotlinkRes = await axios(`${link}`, { headers });
+      const dotlinkText = dotlinkRes.data;
+      // console.log('dotlinkText', dotlinkText);
+      const vlink = dotlinkText.match(/<a\s+href="([^"]*cloud\.[^"]*)"/i) || [];
+      // console.log('vLink', vlink[1]);
+      link = vlink[1];
 
-    // 1. Extract ID from URL (e.g., /movie-name-123)
-    const idMatch = link.match(/-(\d+)/);
-    const animeId = idMatch ? idMatch[1] : null;
-    if (!animeId) return [];
-
-    // 2. Get Episode List
-    const listRes = await axios.get(`${baseUrl}/ajax/episode/list/${animeId}`, { headers, signal });
-    if (!listRes.data?.html) return [];
-    
-    const $list = cheerio.load(listRes.data.html);
-    const firstEp = $list("a.ep-item").first();
-    const episodeId = firstEp.attr("data-id");
-    if (!episodeId) return [];
-
-    // 3. Get Server List
-    const serversRes = await axios.get(`${baseUrl}/ajax/episode/servers?episodeId=${episodeId}`, { headers, signal });
-    if (!serversRes.data?.html) return [];
-
-    const $servers = cheerio.load(serversRes.data.html);
-    const streams: Stream[] = [];
-
-    const serverItems = $servers(".server-item").slice(0, 2);
-    
-    for (const el of serverItems.toArray()) {
-      const item = $servers(el);
-      const sourceId = item.attr("data-id");
-      const serverName = item.text().trim();
-      const typeLabel = item.attr("data-type") || "sub";
-
-      if (!sourceId) continue;
-
+      // filepress link
       try {
-        const sourceRes = await axios.get(`${baseUrl}/ajax/episode/sources?id=${sourceId}`, { headers, signal });
-        if (sourceRes.data?.link) {
-          streams.push({
-            server: `HiAnime - ${serverName} (${typeLabel})`,
-            link: sourceRes.data.link,
-            type: "embed",
-            quality: "1080",
+        const $ = cheerio.load(dotlinkText);
+        const filepressLink = $(
+          '.btn.btn-sm.btn-outline[style="background:linear-gradient(135deg,rgb(252,185,0) 0%,rgb(0,0,0)); color: #fdf8f2;"]'
+        )
+          .parent()
+          .attr("href");
+        // console.log('filepressLink', filepressLink);
+        const filepressID = filepressLink?.split("/").pop();
+        const filepressBaseUrl = filepressLink
+          ?.split("/")
+          .slice(0, -2)
+          .join("/");
+        // console.log('filepressID', filepressID);
+        // console.log('filepressBaseUrl', filepressBaseUrl);
+        const filepressTokenRes = await axios.post(
+          filepressBaseUrl + "/api/file/downlaod/",
+          {
+            id: filepressID,
+            method: "indexDownlaod",
+            captchaValue: null,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Referer: filepressBaseUrl,
+            },
+          }
+        );
+        // console.log('filepressTokenRes', filepressTokenRes.data);
+        if (filepressTokenRes.data?.status) {
+          const filepressToken = filepressTokenRes.data?.data;
+          const filepressStreamLink = await axios.post(
+            filepressBaseUrl + "/api/file/downlaod2/",
+            {
+              id: filepressToken,
+              method: "indexDownlaod",
+              captchaValue: null,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Referer: filepressBaseUrl,
+              },
+            }
+          );
+          // console.log('filepressStreamLink', filepressStreamLink.data);
+          streamLinks.push({
+            server: "filepress",
+            link: filepressStreamLink.data?.data?.[0],
+            type: "mkv",
           });
         }
-      } catch (e) {
-        console.error("HiAnime source resolution error:", e);
+      } catch (error) {
+        console.log("filepress error: ");
+        // console.error(error);
       }
     }
 
-    return streams;
-  } catch (err) {
-    console.error("HiAnime getStream error:", err instanceof Error ? err.message : String(err));
+    return await hubcloudExtracter(link, signal);
+  } catch (error: any) {
+    console.log("getStream error: ", error);
+    if (error.message.includes("Aborted")) {
+    } else {
+    }
     return [];
   }
 }

@@ -73,8 +73,7 @@ export const getPosts = function ({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  return providerContext.getBaseUrl("drive").then((baseUrlRaw) => {
-    const baseUrl = baseUrlRaw.replace(/\/+$/, "");
+  return providerContext.getBaseUrl("drive").then((baseUrl) => {
     // Construct URL: baseUrl + filter + page
     // Example: https://new1.moviesdrives.my/category/anime/page/1/
     const cleanFilter = filter.startsWith("/") ? filter : `/${filter}`;
@@ -100,8 +99,7 @@ export const getSearchPosts = function ({
   providerContext: ProviderContext;
   signal: AbortSignal;
 }): Promise<Post[]> {
-  return providerContext.getBaseUrl("drive").then((baseUrlRaw) => {
-    const baseUrl = baseUrlRaw.replace(/\/+$/, "");
+  return providerContext.getBaseUrl("drive").then((baseUrl) => {
     const url = `${baseUrl}/searchapi.php?q=${encodeURIComponent(
       searchQuery
     )}&page=${page}`;

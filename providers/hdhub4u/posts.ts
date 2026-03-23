@@ -19,10 +19,10 @@ export const getPosts = async function ({
   providerContext: ProviderContext;
   signal: AbortSignal;
 }): Promise<Post[]> {
-  const { getBaseUrl, axios } = providerContext;
-  const baseUrl = (await getBaseUrl("hdhub")).replace(/\/+$/, "");
-  const url = `${baseUrl}${filter}/page/${page}/`;
-  return posts({ url, signal, providerContext, axios });
+  const { getBaseUrl } = providerContext;
+  const baseUrl = await getBaseUrl("hdhub");
+  const url = `${baseUrl + filter}/page/${page}/`;
+  return posts({ url, signal, providerContext });
 };
 
 export const getSearchPosts = async function ({
@@ -37,30 +37,28 @@ export const getSearchPosts = async function ({
   providerContext: ProviderContext;
   signal: AbortSignal;
 }): Promise<Post[]> {
-  const { getBaseUrl, axios } = providerContext;
-  const baseUrl = (await getBaseUrl("hdhub")).replace(/\/+$/, "");
+  const { getBaseUrl } = providerContext;
+  const baseUrl = await getBaseUrl("hdhub");
   const url = `${baseUrl}/page/${page}/?s=${searchQuery}`;
-  return posts({ url, signal, providerContext, axios });
+  return posts({ url, signal, providerContext });
 };
 
 async function posts({
   url,
   signal,
   providerContext,
-  axios,
 }: {
   url: string;
   signal: AbortSignal;
   providerContext: ProviderContext;
-  axios: ProviderContext["axios"];
 }): Promise<Post[]> {
   const { cheerio } = providerContext;
   try {
-    const res = await axios.get(url, {
+    const res = await fetch(url, {
       headers: hdbHeaders,
       signal,
     });
-    const data = res.data;
+    const data = await res.text();
     const $ = cheerio.load(data);
     const catalog: Post[] = [];
     $(".recent-movies")

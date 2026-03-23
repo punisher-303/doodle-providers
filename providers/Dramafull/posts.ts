@@ -57,9 +57,8 @@ async function fetchPosts({
     providerContext: ProviderContext;
 }): Promise<Post[]> {
     try {
-        const { getBaseUrl, axios, cheerio } = providerContext;
-        const baseUrlRaw = await getBaseUrl("dramafull");
-        const baseUrl = baseUrlRaw.replace(/\/$/, "");
+        const baseUrl = "https://dramafull.cc";
+        const { axios, cheerio } = providerContext;
 
         // Build URL
         let url = baseUrl;

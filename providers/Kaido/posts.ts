@@ -69,29 +69,28 @@ function fetchPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl, axios, cheerio } = providerContext;
-  
-  return (async () => {
-    try {
-      const baseUrlRaw = await getBaseUrl("kaido");
-      const baseUrl = baseUrlRaw.replace(/\/$/, "");
-      let url = baseUrl;
+  const { axios, cheerio } = providerContext;
+  const baseUrl = "https://kaido.to";
 
-      // --------------------------------------------------
-      // ✅ URL BUILD (ZORO ENGINE)
-      // --------------------------------------------------
-      if (query && query.trim()) {
-        const q = encodeURIComponent(query.trim());
-        url = `${baseUrl}/search?keyword=${q}`;
-        if (page > 1) url += `&page=${page}`;
-      } else if (filter) {
-        const clean = filter.startsWith("/") ? filter : `/${filter}`;
-        url = `${baseUrl}${clean}${page > 1 ? `?page=${page}` : ""}`;
-      } else {
-        url = `${baseUrl}/home`;
-      }
+  let url = baseUrl;
 
-      const res = await axios.get(url, { headers: defaultHeaders, signal });
+  // --------------------------------------------------
+  // ✅ URL BUILD (FIXED FOR KAIDO)
+  // --------------------------------------------------
+  if (query && query.trim()) {
+    const q = encodeURIComponent(query.trim());
+    url = `${baseUrl}/search?keyword=${q}`;
+    if (page > 1) url += `&page=${page}`;
+  } else if (filter) {
+    const clean = filter.startsWith("/") ? filter : `/${filter}`;
+    url = `${baseUrl}${clean}${page > 1 ? `/page/${page}` : ""}`;
+  } else {
+    url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
+  }
+
+  return axios
+    .get(url, { headers: defaultHeaders, signal })
+    .then((res: any) => {
       const $ = cheerio.load(res.data || "");
       const posts: Post[] = [];
       const seen = new Set<string>();
@@ -100,15 +99,15 @@ function fetchPosts({
         href?.startsWith("http") ? href : new URL(href, baseUrl).href;
 
       // --------------------------------------------------
-      // ✅ ZORO ENGINE RESULT PARSER
+      // ✅ KAIDO RESULT PARSER
       // --------------------------------------------------
       $(".flw-item").each((_, el) => {
         const item = $(el);
 
         // LINK
         let link =
-          item.find(".film-name a").attr("href") ||
           item.find("a.film-poster-ahref").attr("href") ||
+          item.find(".film-name a").attr("href") ||
           "";
 
         if (!link) return;
@@ -141,9 +140,9 @@ function fetchPosts({
       });
 
       return posts.slice(0, 100);
-    } catch (err) {
-      console.error("Kaido posts/search error:", err instanceof Error ? err.message : String(err));
+    })
+    .catch((err: any) => {
+      console.error("Kaido posts/search error:", err?.message || err);
       return [];
-    }
-  })();
-}
+    });
+}

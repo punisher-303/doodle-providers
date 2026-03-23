@@ -11,6 +11,10 @@ const defaultHeaders = {
   "Cache-Control": "no-cache",
 };
 
+// Base URL (can be updated if domain changes)
+const baseUrl = "https://vegamovies.or.ke";
+
+// --- Normal catalog posts ---
 export async function getPosts({
   filter,
   page = 1,
@@ -22,10 +26,7 @@ export async function getPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl } = providerContext;
-  const baseUrl = (await getBaseUrl("flixhq")) || "https://flixhq.to";
-  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
-  return fetchPosts({ filter, page, query: "", signal, providerContext, baseUrl: cleanBaseUrl });
+  return fetchPosts({ filter, page, query: "", signal, providerContext });
 }
 
 // --- Search posts ---
@@ -40,10 +41,7 @@ export async function getSearchPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl } = providerContext;
-  const baseUrl = (await getBaseUrl("flixhq")) || "https://flixhq.to";
-  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
-  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext, baseUrl: cleanBaseUrl });
+  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext });
 }
 
 // --- Core function ---
@@ -53,27 +51,28 @@ async function fetchPosts({
   page = 1,
   signal,
   providerContext,
-  baseUrl,
 }: {
   filter?: string;
   query?: string;
   page?: number;
   signal?: AbortSignal;
   providerContext: ProviderContext;
-  baseUrl: string;
 }): Promise<Post[]> {
   try {
     let url: string;
 
     // Handle search or category filtering
     if (query && query.trim()) {
-      url = `${baseUrl}/search/${query.trim().replace(/\s+/g, "-")}`;
+      const params = new URLSearchParams();
+      params.append("s", query);
+      if (page > 1) params.append("page", page.toString());
+      url = `${baseUrl}/?${params.toString()}`;
     } else if (filter) {
       url = filter.startsWith("/")
         ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
         : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
     } else {
-      url = `${baseUrl}/home${page > 1 ? `/page/${page}` : ""}`;
+      url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
     }
 
     const { axios, cheerio } = providerContext;
@@ -88,7 +87,6 @@ async function fetchPosts({
 
     // Multiple selectors for better coverage
     const POST_SELECTORS = [
-      ".flw-item",
       ".pstr_box",
       "article",
       ".result-item",

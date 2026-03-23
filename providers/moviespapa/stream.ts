@@ -20,47 +20,48 @@ export const getStream = function ({
 
   console.log("Processing:", link);
 
-  // 1. First GET request to load the movie post or intermediate page
+  // 1. First GET request to load the Uptobhai page
   return axios
     .get(link, { headers: commonHeaders })
-    .then(async (res) => {
-      let html = res.data;
-      let $ = cheerio.load(html);
-
-      // Check if we are on the movie post page by looking for resolution buttons
-      const resolutionButtons = $("a.buttn.direct, a.buttn.gdirect");
-      if (resolutionButtons.length > 0) {
-        console.log(`Found ${resolutionButtons.length} resolution buttons. Following the first one.`);
-        const firstBtnLink = resolutionButtons.first().attr("href");
-        if (firstBtnLink) {
-          const res2 = await axios.get(firstBtnLink, { headers: commonHeaders });
-          html = res2.data;
-          $ = cheerio.load(html);
-        }
-      }
+    .then((res) => {
+      const $ = cheerio.load(res.data);
 
       // ===========================
       // 🔓 BYPASS LOCK / CSRF
       // ===========================
       const csrfInput = $("input[name^='_csrf_token']");
+
       if (csrfInput.length > 0) {
         console.log("🔒 Locked page detected. Unlocking...");
+
         const name = csrfInput.attr("name");
         const value = csrfInput.attr("value");
+
+        // Create Form Data manually
         const postBody = `${name}=${value}`;
-        const postRes = await axios.post(link, postBody, {
-          headers: { ...commonHeaders, "Content-Type": "application/x-www-form-urlencoded" },
-        });
-        html = postRes.data;
+
+        // POST request to unlock
+        return axios
+          .post(link, postBody, {
+            headers: {
+              ...commonHeaders,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          })
+          .then((postRes) => postRes.data); // Return the unlocked HTML
       }
-      return html;
+
+      // If no lock found, just return the original HTML
+      return res.data;
     })
     .then((html) => {
+      // ===========================
+      // 🔍 LINK EXTRACTION
+      // ===========================
       const $ = cheerio.load(html);
-      const hubcloudExtracter = providerContext.extractors?.hubcloudExtracter;
 
       // Try Selector First
-      let extractedLinks = $("div.view-well a, a.download-btn, a:contains('HubCloud')")
+      let extractedLinks = $("div.view-well a")
         .map((_, el) => $(el).attr("href"))
         .get()
         .filter((l) => l && l.startsWith("http"));
@@ -135,15 +136,6 @@ export const getStream = function ({
 
         // --- 3. Gofile ---
        
-
-        // --- HubCloud ---
-        else if (url.includes("hubcloud") && hubcloudExtracter) {
-          return hubcloudExtracter(url, new AbortController().signal)
-            .then((hubStreams) => {
-              streams.push(...hubStreams);
-            })
-            .catch(() => {});
-        }
 
         // --- 4. PixelDrain ---
         else if (url.includes("pixeldrain.com")) {

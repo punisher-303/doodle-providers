@@ -54,22 +54,22 @@ async function posts({
     const data = res.data;
     const $ = cheerio.load(data);
     const catalog: Post[] = [];
-    $(".post, .recent-posts > div, article").each((_i, element) => {
-      const el = $(element);
-      const titleRaw = el.find("h2.entry-title a, .post-thumb a").attr("title") || el.find("h2").text();
-      const link = el.find("h2.entry-title a, .post-thumb a, a").first().attr("href");
-      const image =
-        el.find("img.Thumbnail, img").first().attr("data-src") ||
-        el.find("img").first().attr("src");
-
-      if (titleRaw && link && image) {
-        catalog.push({
-          title: titleRaw.replace(/^Download\s*/i, "").trim(),
-          link: link,
-          image: image,
-        });
-      }
-    });
+    $(".recent-posts")
+      .children()
+      .map((i, element) => {
+        const title = $(element).find(".post-thumb").find("a").attr("title");
+        const link = $(element).find(".post-thumb").find("a").attr("href");
+        const image =
+          $(element).find(".post-thumb").find("img").attr("data-src") ||
+          $(element).find(".post-thumb").find("img").attr("src");
+        if (title && link && image) {
+          catalog.push({
+            title: title.replace("Download", "").trim(),
+            link: link,
+            image: image,
+          });
+        }
+      });
     return catalog;
   } catch (err) {
     return [];

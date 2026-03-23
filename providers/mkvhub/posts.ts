@@ -56,9 +56,7 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const { getBaseUrl, axios, cheerio } = providerContext;
-    const baseUrlRaw = await getBaseUrl("mkvhub");
-    const baseUrl = baseUrlRaw.replace(/\/$/, "");
+    const baseUrl = "https://www.mkvhub.shop";
     let url: string;
 
     // Search URL
@@ -68,12 +66,14 @@ async function fetchPosts({
       if (page > 1) params.append("paged", page.toString());
       url = `${baseUrl}/?${params.toString()}`;
     } else if (filter) {
-      const cleanFilter = filter.startsWith("/") ? filter : `/${filter}`;
-      url = `${baseUrl}${cleanFilter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`;
+      url = filter.startsWith("/")
+        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
+        : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
     } else {
       url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
     }
 
+    const { axios, cheerio } = providerContext;
     const res = await axios.get(url, { headers: defaultHeaders, signal });
     const $ = cheerio.load(res.data || "");
 
@@ -83,35 +83,31 @@ async function fetchPosts({
     const seen = new Set<string>();
     const catalog: Post[] = [];
 
-    // ✅ Fetch posts: UPDATED SELECTORS
-    $("figure, .thumb, .post, article").each((_, el) => {
+    // ✅ Fetch posts: UPDATED SELECTOR
+    // Targeting: div.thumb inside section.home-wrapper.thumbnail-wrapper
+    $("section.home-wrapper.thumbnail-wrapper div.thumb").each((_, el) => {
       const card = $(el);
 
-      const linkEl = card.find("figcaption a, a").first();
-      let link = linkEl.attr("href") || "";
+      // Link: The link is available on the <a> tag inside <figcaption> and the second <a> after <figcaption>
+      // The snippet shows a link: <a href="..."><p>TITLE</p></a>
+      let link = card.find("figcaption a").attr("href") || "";
       if (!link) return;
       link = resolveUrl(link);
-      if (seen.has(link) || link === baseUrl || link === baseUrl + "/") return;
+      if (seen.has(link)) return;
 
-      let title =
-        card.find("figcaption a p").first().text().trim() ||
-        card.find(".post-title a, h2 a, a").first().text().trim() ||
-        card.find("img").attr("alt")?.trim() ||
-        "";
+      // Title: The title is in the <p> tag inside the <figcaption> <a> tag.
+      // Removed the .replace(/^Download\s*/i, "") part as it's not present in the new structure
+      let title = card.find("figcaption a p")
+        .text()
+        .trim();
       if (!title) return;
       
-      let img =
-        card.find("img").first().attr("src") ||
-        card.find("img").first().attr("data-src") ||
-        "";
+      // Image: The image is in the <img> tag inside <figure>
+      let img = card.find("figure img").attr("src") || "";
       const image = img ? resolveUrl(img) : "";
 
       seen.add(link);
-      catalog.push({ 
-        title: title.replace(/^Download\s*/i, "").trim(), 
-        link, 
-        image 
-      });
+      catalog.push({ title, link, image });
     });
 
     return catalog.slice(0, 100);

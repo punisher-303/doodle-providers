@@ -18,9 +18,7 @@ export async function getPosts({ filter, page = 1, signal, providerContext }: {
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl } = providerContext;
-  const baseUrl = (await getBaseUrl("movies4u")) || "https://movies4u.ky";
-  return fetchPosts({ filter, page, query: "", signal, providerContext, baseUrl });
+  return fetchPosts({ filter, page, query: "", signal, providerContext });
 }
 
 export async function getSearchPosts({ searchQuery, page = 1, signal, providerContext }: {
@@ -29,31 +27,28 @@ export async function getSearchPosts({ searchQuery, page = 1, signal, providerCo
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl } = providerContext;
-  const baseUrl = (await getBaseUrl("movies4u")) || "https://movies4u.ky";
-  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext, baseUrl });
+  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext });
 }
 
-async function fetchPosts({ filter, query, page = 1, signal, providerContext, baseUrl }: {
+async function fetchPosts({ filter, query, page = 1, signal, providerContext }: {
   filter?: string;
   query?: string;
   page?: number;
   signal?: AbortSignal;
   providerContext: ProviderContext;
-  baseUrl: string;
 }): Promise<Post[]> {
   try {
+    const baseUrl = "https://movies4u.uz";
     let url: string;
 
-    const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
     if (query && query.trim()) {
-      url = `${cleanBaseUrl}/?s=${encodeURIComponent(query)}${page > 1 ? `&paged=${page}` : ""}`;
+      url = `${baseUrl}/?s=${encodeURIComponent(query)}${page > 1 ? `&paged=${page}` : ""}`;
     } else if (filter) {
       url = filter.startsWith("/")
-        ? `${cleanBaseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
-        : `${cleanBaseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
+        : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
     } else {
-      url = `${cleanBaseUrl}${page > 1 ? `/page/${page}` : ""}`;
+      url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
     }
 
     const { axios, cheerio } = providerContext;

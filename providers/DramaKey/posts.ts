@@ -1,98 +1,137 @@
 import { Post, ProviderContext } from "../types";
 
 const defaultHeaders = {
-  Referer: "https://dramakey.com/",
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Referer: "https://www.google.com",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  Pragma: "no-cache",
+  "Cache-Control": "no-cache",
+  Cookie: "starstruck_92a51155d30383747881214f427bf36e=d9078f054cfc2c98c5a4fbd2db0765a7; _ga=GA1.1.283094789.1762600987; popup_closed=true; _ga_YHYM56T9LB=GS2.1.s1762600986$o1$g1$t1762604243$j60$l0$h0",
 };
 
+// --- Normal catalog posts (For the home page/newest/updated posts) ---
 export async function getPosts({
-  filter,
-  page = 1,
-  signal,
-  providerContext,
+  filter,
+  page = 1,
+  signal,
+  providerContext,
 }: {
-  filter?: string;
-  page?: number;
-  signal?: AbortSignal;
-  providerContext: ProviderContext;
+  filter?: string;
+  page?: number;
+  signal?: AbortSignal;
+  providerContext: ProviderContext;
 }): Promise<Post[]> {
-  return fetchPosts({ filter, page, signal, providerContext });
+  return fetchPosts({ filter, page, query: "", signal, providerContext });
 }
 
+// --- Search posts (Refined for clarity) ---
 export async function getSearchPosts({
-  searchQuery,
-  page = 1,
-  signal,
-  providerContext,
+  searchQuery,
+  page = 1,
+  signal,
+  providerContext,
 }: {
-  searchQuery: string;
-  page?: number;
-  signal?: AbortSignal;
-  providerContext: ProviderContext;
+  searchQuery: string;
+  page?: number;
+  signal?: AbortSignal;
+  providerContext: ProviderContext;
 }): Promise<Post[]> {
-  return fetchPosts({ query: searchQuery, page, signal, providerContext });
+  return fetchPosts({ filter: undefined, page, query: searchQuery, signal, providerContext });
 }
 
+// --- Core scraping function ---
 async function fetchPosts({
-  filter,
-  query,
-  page = 1,
-  signal,
-  providerContext,
+  filter,
+  query,
+  page = 1,
+  signal,
+  providerContext,
 }: {
-  filter?: string;
-  query?: string;
-  page?: number;
-  signal?: AbortSignal;
-  providerContext: ProviderContext;
+  filter?: string;
+  query?: string;
+  page?: number;
+  signal?: AbortSignal;
+  providerContext: ProviderContext;
 }): Promise<Post[]> {
-  try {
-    const { getBaseUrl, axios, cheerio } = providerContext;
-    const baseUrlRaw = await getBaseUrl("dramakey");
-    const baseUrl = baseUrlRaw.replace(/\/$/, "");
-    let url = baseUrl;
+  try {
+    const baseUrl = "https://onlykdrama.top";
+    let url: string;
+    const isSearch = query && query.trim(); // Check if we are on a search page
 
-    if (query && query.trim()) {
-      url = `${baseUrl}/?s=${encodeURIComponent(query.trim())}`;
-      if (page > 1) url += `&paged=${page}`;
-    } else if (filter) {
-      url = `${baseUrl}/${filter.startsWith("/") ? filter.slice(1) : filter}`;
-      if (page > 1) url += `/page/${page}`;
-    } else {
-      url = page > 1 ? `${baseUrl}/page/${page}` : baseUrl;
-    }
+    // 1. Handle URL construction (remains the same)
+    if (isSearch) {
+      url = `${baseUrl}/?s=${encodeURIComponent(query!)}${page > 1 ? `&paged=${page}` : ""}`;
+    } 
+    else if (filter) {
+      url = filter.startsWith("/")
+        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
+        : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+    } 
+    else {
+      url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
+    }
 
-    const res = await axios.get(url, { headers: defaultHeaders, signal });
-    const $ = cheerio.load(res.data);
-    const posts: Post[] = [];
-    const seen = new Set<string>();
+    const { axios, cheerio } = providerContext;
+    const res = await axios.get(url, { headers: defaultHeaders, signal }); 
+    const $ = cheerio.load(res.data || "");
 
-    const resolveUrl = (href: string) =>
-      href?.startsWith("http") ? href : new URL(href, baseUrl).href;
+    const resolveUrl = (href: string) =>
+      href?.startsWith("http") ? href : new URL(href, url).href;
 
-    // Updated selectors from browser audit: div.eael-grid-post
-    $("div.eael-grid-post").each((_, el) => {
-      const item = $(el);
-      const anchor = item.find("a.eael-grid-post-link");
-      let link = anchor.attr("href") || "";
-      if (!link) return;
-      link = resolveUrl(link);
-      if (seen.has(link)) return;
+    const seen = new Set<string>();
+    const catalog: Post[] = [];
 
-      const title = item.find("h2.eael-entry-title a").text().trim() || anchor.attr("title")?.trim() || "";
-      if (!title) return;
+    // --- SELECTOR LOGIC MODIFICATION BASED ON PAGE TYPE ---
+    // If search, use the specific '.result-item' from the search template.
+    // Otherwise, use the original catalog selector.
+    const selector = isSearch ? ".result-item" : ".items .item.tvshows";
 
-      let img = item.find("div.eael-entry-thumbnail img").attr("src") || "";
-      const image = img ? resolveUrl(img) : "";
+    // --- Parse post containers ---
+    $(selector).each((_, el) => {
+      const card = $(el);
 
-      seen.add(link);
-      posts.push({ title, link, image });
-    });
+        let link: string;
+        let title: string;
+        let image: string;
+        let rating: string;
+        let yearOrDate: string;
 
-    return posts;
-  } catch (err) {
-    console.error("DramaKey fetchPosts error:", err instanceof Error ? err.message : String(err));
-    return [];
-  }
+        if (isSearch) {
+            // New logic based on the provided HTML structure
+            link = resolveUrl(card.find(".details .title a").attr("href") || "");
+            title = card.find(".details .title a").text().trim() || "";
+            image = card.find(".image img").attr("src") || card.find(".image img").attr("data-src") || "";
+            rating = card.find(".details .meta .rating").text().trim() || "0";
+            yearOrDate = card.find(".details .meta .year").text().trim() || "";
+        } else {
+            // Original logic for .items .item.tvshows container (Home/Filter)
+            link = resolveUrl(card.find("a").first().attr("href") || "");
+            title = card.find("h3 a").text().trim() || "";
+            image = card.find(".poster img").attr("src") || card.find(".poster img").attr("data-src") || "";
+            rating = card.find(".rating").text().trim() || "0";
+            yearOrDate = card.find(".data span").last().text().trim() || "";
+        }
+        
+      if (!link || seen.has(link) || !title) return;
+        
+      const poster = image ? resolveUrl(image) : "";
+
+      seen.add(link);
+      catalog.push({
+        title,
+        link,
+        image: poster,
+        rating,
+        date: yearOrDate,
+      } as Post);
+    });
+
+    return catalog.slice(0, 100);
+  } catch (err) {
+    console.error("fetchPosts parsing error:", err instanceof Error ? err.message : String(err));
+    return [];
+  }
 }

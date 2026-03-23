@@ -56,9 +56,7 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const { getBaseUrl, axios, cheerio } = providerContext;
-    const baseUrlRaw = await getBaseUrl("hdmovie2");
-    const baseUrl = baseUrlRaw.replace(/\/$/, "");
+    const baseUrl = "https://movietp.com";
     let url: string;
 
     // ✅ Search URL construction: Use 's' parameter for query and 'paged' for pagination.
@@ -68,12 +66,14 @@ async function fetchPosts({
       if (page > 1) params.append("paged", page.toString());
       url = `${baseUrl}/?${params.toString()}`;
     } else if (filter) {
-      const cleanFilter = filter.startsWith("/") ? filter : `/${filter}`;
-      url = `${baseUrl}${cleanFilter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`;
+      url = filter.startsWith("/")
+        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
+        : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
     } else {
       url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
     }
 
+    const { axios, cheerio } = providerContext;
     const res = await axios.get(url, { headers: defaultHeaders, signal });
     const $ = cheerio.load(res.data || "");
 

@@ -17,60 +17,64 @@ export async function getStream({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Stream[]> {
-  const { getBaseUrl, axios, cheerio } = providerContext;
+  const { axios } = providerContext;
 
   try {
-    const baseUrlRaw = await getBaseUrl("dramafull");
-    const baseUrl = baseUrlRaw.replace(/\/$/, "");
+    /**
+     * STEP 1: Load watch page
+     */
+    const watchRes = await axios.get(link, {
+      headers,
+      signal,
+    });
 
-    // 1. Extract ID from URL
-    const idMatch = link.match(/-(\d+)/);
-    const dramaId = idMatch ? idMatch[1] : null;
-    if (!dramaId) return [];
+    const html: string = watchRes.data;
 
-    // 2. Get Episode List
-    const listRes = await axios.get(`${baseUrl}/ajax/episode/list/${dramaId}`, { headers, signal });
-    if (!listRes.data?.html) return [];
-    
-    const $list = cheerio.load(listRes.data.html);
-    const firstEp = $list("a.ep-item").first();
-    const episodeId = firstEp.attr("data-id");
-    if (!episodeId) return [];
+    /**
+     * STEP 2: Extract signed API URL
+     * window.signedUrl = "https://dramafull.cc/api/get-link/504936?...";
+     */
+    const signedUrlMatch = html.match(
+      /window\.signedUrl\s*=\s*"([^"]+)"/
+    );
 
-    // 3. Get Server List
-    const serversRes = await axios.get(`${baseUrl}/ajax/episode/servers?episodeId=${episodeId}`, { headers, signal });
-    if (!serversRes.data?.html) return [];
+    if (!signedUrlMatch) return [];
 
-    const $servers = cheerio.load(serversRes.data.html);
+    const apiUrl = signedUrlMatch[1].replace(/\\\//g, "/");
+
+    /**
+     * STEP 3: Call signed API
+     */
+    const apiRes = await axios.get(apiUrl, {
+      headers,
+      signal,
+    });
+
+    const data = apiRes.data;
+    if (!data?.success || !data.video_source) return [];
+
     const streams: Stream[] = [];
 
-    const serverItems = $servers(".server-item").slice(0, 2);
-    
-    for (const el of serverItems.toArray()) {
-      const item = $servers(el);
-      const sourceId = item.attr("data-id");
-      const serverName = item.text().trim();
-
-      if (!sourceId) continue;
-
-      try {
-        const sourceRes = await axios.get(`${baseUrl}/ajax/episode/sources?id=${sourceId}`, { headers, signal });
-        if (sourceRes.data?.link) {
-          streams.push({
-            server: `Dramafull - ${serverName}`,
-            link: sourceRes.data.link,
-            type: "embed",
-            quality: "1080",
-          });
-        }
-      } catch (e) {
-        console.error("Dramafull source resolution error:", e);
-      }
+    /**
+     * STEP 4: Build stream list
+     */
+    for (const [quality, videoUrl] of Object.entries(
+      data.video_source
+    )) {
+      streams.push({
+        server: "dramafull-sharepoint",
+        link: videoUrl as string,
+        type: "mp4",
+        subtitles: data.sub?.[quality]?.map((sub: string) => ({
+          lang: "en",
+          url: `https://dramafull.cc${sub}`,
+        })),
+      });
     }
 
     return streams;
   } catch (err: any) {
-    console.error("Dramafull getStream error:", err.message);
+    console.error("getStream error:", err.message);
     return [];
   }
 }

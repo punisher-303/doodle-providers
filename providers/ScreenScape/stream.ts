@@ -20,21 +20,23 @@ export async function getStream({
     const contentType = match[1]; // "movie" or "tv"
     const tmdbId = match[2];
 
-    // For TV series, we need season and episode.
-    // In Doodle API, episodes are usually passed in the 'link' or 'type' context.
-    // If 'type' is 'episode', the link might contain season/episode info.
-    
     let season = "";
     let episode = "";
 
     if (contentType === "tv") {
-      // Try to extract from URL if it's an episode link
-      // Example: https://screenscape.me/watch/tv/1396?s=1&e=1
-      const sMatch = link.match(/[?&]s=(\d+)/);
-      const eMatch = link.match(/[?&]e=(\d+)/);
-      if (sMatch && eMatch) {
-        season = sMatch[1];
-        episode = eMatch[1];
+      // Try to extract from the new URL format: /tv/{tmdbId}/season/{s}/episode/{e}
+      const epMatch = link.match(/season\/(\d+)\/episode\/(\d+)/);
+      if (epMatch) {
+        season = epMatch[1];
+        episode = epMatch[2];
+      } else {
+        // Fallback for query parameters
+        const sMatch = link.match(/[?&]s=(\d+)/);
+        const eMatch = link.match(/[?&]e=(\d+)/);
+        if (sMatch && eMatch) {
+          season = sMatch[1];
+          episode = eMatch[1];
+        }
       }
     }
 

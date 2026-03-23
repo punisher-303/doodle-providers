@@ -1,70 +1,106 @@
 import { Stream, ProviderContext } from "../types";
 
-export const getStream = async function ({
+export const getStream = function ({
   link,
   providerContext,
-  signal,
 }: {
   link: string;
   providerContext: ProviderContext;
-  signal?: AbortSignal;
 }): Promise<Stream[]> {
-  const { getBaseUrl, axios, cheerio, commonHeaders: headers } = providerContext;
+  const { axios, cheerio, commonHeaders } = providerContext;
 
-  try {
-    const baseUrlRaw = await getBaseUrl("kaido");
-    const baseUrl = baseUrlRaw.replace(/\/$/, "");
+  // ---------------- EXTRACT EPISODE ID ----------------
+  const epMatch = link.match(/[?&]ep=(\d+)/);
+  const episodeId = epMatch ? epMatch[1] : null;
 
-    // 1. Extract ID from URL (e.g., /movie-name-123)
-    const idMatch = link.match(/-(\d+)/);
-    const animeId = idMatch ? idMatch[1] : null;
-    if (!animeId) return [];
+  if (!episodeId) return Promise.resolve([]);
 
-    // 2. Get Episode List
-    const listRes = await axios.get(`${baseUrl}/ajax/episode/list/${animeId}`, { headers, signal });
-    if (!listRes.data?.html) return [];
-    
-    const $list = cheerio.load(listRes.data.html);
-    const firstEp = $list("a.ep-item").first();
-    const episodeId = firstEp.attr("data-id");
-    if (!episodeId) return [];
+  const serversUrl = `https://kaido.to/ajax/episode/servers?episodeId=${episodeId}`;
 
-    // 3. Get Server List
-    const serversRes = await axios.get(`${baseUrl}/ajax/episode/servers?episodeId=${episodeId}`, { headers, signal });
-    if (!serversRes.data?.html) return [];
+  // ---------------- STEP 1: GET SERVERS ----------------
+  return axios
+    .get(serversUrl, { headers: commonHeaders })
+    .then((res: any) => {
+      const data = res.data;
+      if (!data || !data.html) return [];
 
-    const $servers = cheerio.load(serversRes.data.html);
-    const streams: Stream[] = [];
+      const $ = cheerio.load(data.html);
+      const serverTasks: Promise<Stream[]>[] = [];
 
-    // For simplicity, we'll try to resolve the first two servers
-    const serverItems = $servers(".server-item").slice(0, 2);
-    
-    for (const el of serverItems.toArray()) {
-      const item = $servers(el);
-      const sourceId = item.attr("data-id");
-      const serverName = item.text().trim();
-      const type = item.attr("data-type") || "sub";
+      $(".server-item").each((_, el) => {
+        const item = $(el);
+        const sourceId = item.attr("data-id");
+        const type = item.attr("data-type"); // sub | dub
 
-      if (!sourceId) continue;
+        if (!sourceId) return;
 
-      try {
-        const sourceRes = await axios.get(`${baseUrl}/ajax/episode/sources?id=${sourceId}`, { headers, signal });
-        if (sourceRes.data?.link) {
-          streams.push({
-            server: `Kaido - ${serverName} (${type})`,
-            link: sourceRes.data.link,
-            type: "embed",
-            quality: "1080",
+        serverTasks.push(
+          resolveSource(sourceId, type || "sub", axios, commonHeaders)
+        );
+      });
+
+      return Promise.all(serverTasks).then((all) =>
+        all.flat().filter(Boolean)
+      );
+    })
+    .catch(() => []);
+};
+
+// ---------------- RESOLVE SOURCE → M3U8 ----------------
+function resolveSource(
+  sourceId: string,
+  type: string,
+  axios: any,
+  headers: any
+): Promise<Stream[]> {
+  const sourceUrl = `https://kaido.to/ajax/episode/sources?id=${sourceId}`;
+
+  return axios
+    .get(sourceUrl, { headers })
+    .then((res: any) => {
+      const data = res.data;
+      if (!data || !data.link) return [];
+
+      // extract rapid-cloud video id
+      const match = data.link.match(/\/e-\d+\/([^?]+)/);
+      const videoId = match ? match[1] : null;
+      if (!videoId) return [];
+
+      const rapidApi = `https://rapid-cloud.co/embed-2/v2/e-1/getSources?id=${videoId}`;
+
+      return axios.get(rapidApi, { headers }).then((apiRes: any) => {
+        const srcData = apiRes.data;
+        if (!srcData) return [];
+
+        const subtitles =
+          Array.isArray(srcData.tracks)
+            ? srcData.tracks
+                .filter((t: any) => t.kind === "captions")
+                .map((t: any) => ({
+                  title: t.label || "English",
+                  language: (t.label || "en").toLowerCase(),
+                  type: "text/vtt",
+                  uri: t.file,
+                }))
+            : [];
+
+        const streams: Stream[] = [];
+
+        if (Array.isArray(srcData.sources)) {
+          srcData.sources.forEach((s: any) => {
+            if (s.type === "hls" && s.file) {
+              streams.push({
+                server: type === "dub" ? "kaido-dub" : "kaido-sub",
+                link: s.file,
+                type: "m3u8",
+                subtitles,
+              });
+            }
           });
         }
-      } catch (e) {
-        console.error("Kaido source resolution error:", e);
-      }
-    }
 
-    return streams;
-  } catch (err) {
-    console.error("Kaido getStream error:", err instanceof Error ? err.message : String(err));
-    return [];
-  }
-};
+        return streams;
+      });
+    })
+    .catch(() => []);
+}
