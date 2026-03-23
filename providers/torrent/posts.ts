@@ -7,14 +7,10 @@ const TMDB_API_KEY = "9d2bff12ed955c7f1f74b83187f188ae";
 export const getPosts = async ({
   filter,
   page,
-  providerValue,
-  signal,
   providerContext,
 }: {
   filter: string;
   page: number;
-  providerValue: string;
-  signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> => {
   let url = "";

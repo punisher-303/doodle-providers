@@ -24,7 +24,7 @@ export type TextTracks = {
 
 // getStream
 export interface Stream {
-  name?: string;
+  name: string;
   server: string;
   link: string;
   type: string;

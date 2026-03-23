@@ -224,7 +224,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
 
     // 1. TorrentGalaxy (Fallback Scraper)
     runScraper("TGx", async (q) => {
-      const url = `https://tgx.rs/torrents.php?search=${encodeURIComponent(q)}&sort=seeders&order=desc`;
+      const url = `https://torrentgalaxy.to/torrents.php?search=${encodeURIComponent(q)}&sort=seeders&order=desc`;
       logger(`[Provider] TGx URL: ${url}`);
       const res = await providerContext.axios.get(url, { 
         signal, 
