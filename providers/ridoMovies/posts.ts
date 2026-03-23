@@ -11,7 +11,6 @@ const defaultHeaders = {
   "Cache-Control": "no-cache",
 };
 
-// --- Normal catalog posts ---
 export async function getPosts({
   filter,
   page = 1,
@@ -23,7 +22,9 @@ export async function getPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  return fetchPosts({ filter, page, query: "", signal, providerContext, isSearch: false });
+  const { getBaseUrl } = providerContext;
+  const baseUrl = (await getBaseUrl("ridoMovies")) || "https://ridomovies.tv";
+  return fetchPosts({ filter, page, query: "", signal, providerContext, isSearch: false, baseUrl });
 }
 
 // --- Search posts ---
@@ -38,7 +39,9 @@ export async function getSearchPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext, isSearch: true });
+  const { getBaseUrl } = providerContext;
+  const baseUrl = (await getBaseUrl("ridoMovies")) || "https://ridomovies.tv";
+  return fetchPosts({ filter: "", page, query: searchQuery, signal, providerContext, isSearch: true, baseUrl });
 }
 
 // --- Core function to fetch posts ---
@@ -49,6 +52,7 @@ async function fetchPosts({
   signal,
   providerContext,
   isSearch = false,
+  baseUrl,
 }: {
   filter?: string;
   query?: string;
@@ -56,9 +60,9 @@ async function fetchPosts({
   signal?: AbortSignal;
   providerContext: ProviderContext;
   isSearch?: boolean;
+  baseUrl: string;
 }): Promise<Post[]> {
   try {
-    const baseUrl = "https://zinkmovies.pics";
     const { axios, cheerio } = providerContext;
     let res;
 

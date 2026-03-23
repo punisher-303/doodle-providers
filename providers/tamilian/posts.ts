@@ -66,7 +66,9 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const baseUrl = "https://tamilian.io";
+    const { getBaseUrl, axios, cheerio } = providerContext;
+    const baseUrlRaw = await getBaseUrl("tamilian");
+    const baseUrl = baseUrlRaw.replace(/\/$/, "");
 
     const wrapWithProxy = (url: string) =>
       "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
@@ -87,8 +89,6 @@ async function fetchPosts({
     } else {
       url = `${baseUrl}/home${page > 1 ? `/page/${page}` : ""}`;
     }
-
-    const { axios, cheerio } = providerContext;
 
     const res = await axios.get(wrapWithProxy(url), {
       headers: defaultHeaders,

@@ -15,8 +15,9 @@ export const getPosts = async function ({
   const { getBaseUrl, axios, cheerio } = providerContext;
 
   const baseUrl = await getBaseUrl("primewire");
-  const url = `${baseUrl + filter}&page=${page}`;
-  return posts({ baseUrl, url, signal, axios, cheerio });
+  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
+  const url = `${cleanBaseUrl}${filter}${filter.includes("?") ? "&" : "?"}page=${page}`;
+  return posts({ baseUrl: cleanBaseUrl, url, signal, axios, cheerio });
 };
 
 export const getSearchPosts = async function ({
@@ -36,12 +37,13 @@ export const getSearchPosts = async function ({
     return await Aes.sha1(input);
   };
   const baseUrl = await getBaseUrl("primewire");
-  const hash = await getSHA256ofJSON(searchQuery + "JyjId97F9PVqUPuMO0");
-  const url = `${baseUrl}/filter?s=${searchQuery}&page=${page}&ds=${hash.slice(
+  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
+  const hash = await Aes.sha1(searchQuery + "JyjId97F9PVqUPuMO0");
+  const url = `${cleanBaseUrl}/filter?s=${searchQuery}&page=${page}&ds=${hash.slice(
     0,
     10
   )}`;
-  return posts({ baseUrl, url, signal, axios, cheerio });
+  return posts({ baseUrl: cleanBaseUrl, url, signal, axios, cheerio });
 };
 
 async function posts({

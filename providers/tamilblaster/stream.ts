@@ -21,14 +21,26 @@ export async function getStream({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Stream[]> {
-  const { axios } = providerContext;
+  const { axios, cheerio } = providerContext;
 
   try {
-    let iframeUrl = link;
+    // 1. Load the topic page
+    const res = await axios.get(link, { headers: COMMON_HEADERS, signal });
+    const $ = cheerio.load(res.data);
 
-    // =================================================================
-    // 1️⃣ Logic: Force "hg" links to tryzendm.com
-    // =================================================================
+    // 2. Find the iframe in ipsEmbeddedVideo or similar
+    let iframeUrl = "";
+    $(".ipsEmbeddedVideo iframe, iframe[src*='tryzendm'], iframe[src*='minochinos'], iframe[src*='hglink']").each((_, el) => {
+      iframeUrl = $(el).attr("src") || "";
+      if (iframeUrl) return false; // break
+    });
+
+    if (!iframeUrl) {
+      console.log("❌ No iframe found in TamilBlaster topic");
+      return [];
+    }
+
+    // Normalize iframe URL if needed (e.g. minochinos, tryzendm)
     if (iframeUrl.includes("hg") || iframeUrl.includes("hglink")) {
       const parts = iframeUrl.split("/e/");
       if (parts.length > 1) {
@@ -37,63 +49,41 @@ export async function getStream({
       }
     }
 
-    // =========================
-    // 2️⃣ Load iframe page
-    // =========================
-    const res = await axios.get(iframeUrl, {
+    // 3. Load iframe page to find m3u8
+    const iframeRes = await axios.get(iframeUrl, {
       signal,
-      headers: {
-        ...COMMON_HEADERS,
-        Referer: iframeUrl, 
-      },
+      headers: { ...COMMON_HEADERS, Referer: link },
     });
 
-    const html = res.data as string;
+    const html = iframeRes.data as string;
     let m3u8: string | null = null;
 
-    // =======================================================
-    // 3️⃣ Extraction Strategy (JWPlayer)
-    // =======================================================
     const jwPlayerMatch = html.match(/(?:file|source)\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
-    if (jwPlayerMatch) {
-      m3u8 = jwPlayerMatch[1];
-    }
+    if (jwPlayerMatch) m3u8 = jwPlayerMatch[1];
 
     if (!m3u8) {
-        const directMatch = html.match(/(https?:\/\/[^\s"']+\.m3u8[^\s"']*)/);
-        if (directMatch) m3u8 = directMatch[1];
+      const directMatch = html.match(/(https?:\/\/[^\s"']+\.m3u8[^\s"']*)/);
+      if (directMatch) m3u8 = directMatch[1];
     }
 
-    if (!m3u8) {
-      console.log("❌ No m3u8 found");
-      return [];
-    }
+    if (!m3u8) return [];
 
-    // ======================================================
-    // 4️⃣ Playback Fix (Headers for tnmr.org)
-    // ======================================================
-    const origin = new URL(iframeUrl).origin; // https://tryzendm.com
+    const origin = new URL(iframeUrl).origin;
 
     return [
       {
-        server: "VidHide / StreamHG",
+        server: "TamilBlaster (Watch Online)",
         link: m3u8,
         type: "hls",
         headers: {
-          // 403 FIX: The Referer MUST be the exact page URL where the video is embedded
-          "Referer": iframeUrl, 
-          
-          // 403 FIX: The Origin must be the domain root
+          "Referer": iframeUrl,
           "Origin": origin,
-          
           "User-Agent": COMMON_HEADERS["User-Agent"],
-          "Accept": "*/*",
-          "Accept-Language": "en-US,en;q=0.9",
         },
       },
     ];
   } catch (err) {
-    console.log("getStream error:", err);
+    console.error("TamilBlaster getStream error:", err);
     return [];
   }
-}
+}

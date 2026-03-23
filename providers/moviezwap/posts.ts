@@ -12,10 +12,10 @@ export const getPosts = async function ({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl, cheerio } = providerContext;
+  const { getBaseUrl } = providerContext;
   const baseUrl = await getBaseUrl("moviezwap");
   const url = `${baseUrl}${filter}`;
-  return posts({ url, signal, cheerio });
+  return posts({ url, signal, providerContext });
 };
 
 export const getSearchPosts = async function ({
@@ -30,24 +30,25 @@ export const getSearchPosts = async function ({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { getBaseUrl, cheerio } = providerContext;
+  const { getBaseUrl } = providerContext;
   const baseUrl = await getBaseUrl("moviezwap");
   const url = `${baseUrl}/search.php?q=${encodeURIComponent(searchQuery)}`;
-  return posts({ url, signal, cheerio });
+  return posts({ url, signal, providerContext });
 };
 
 async function posts({
   url,
   signal,
-  cheerio,
+  providerContext,
 }: {
   url: string;
   signal: AbortSignal;
-  cheerio: ProviderContext["cheerio"];
+  providerContext: ProviderContext;
 }): Promise<Post[]> {
+  const { axios, cheerio } = providerContext;
   try {
-    const res = await fetch(url, { signal });
-    const data = await res.text();
+    const res = await axios.get(url, { signal });
+    const data = res.data;
     const $ = cheerio.load(data);
     const catalog: Post[] = [];
     $('a[href^="/movie/"]').each((i, el) => {
@@ -57,14 +58,14 @@ async function posts({
       if (title && link) {
         catalog.push({
           title: title,
-          link: link,
+          link: link.startsWith("http") ? link : new URL(link, url).href,
           image: image,
         });
       }
     });
     return catalog;
   } catch (err) {
-    console.error("moviezwapGetPosts error ", err);
+    console.error("moviezwapGetPosts error ", err instanceof Error ? err.message : String(err));
     return [];
   }
 }

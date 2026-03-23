@@ -80,42 +80,37 @@ async function fetchPosts({
     providerContext: ProviderContext;
 }): Promise<Post[]> {
     try {
-        const baseUrl = "https://desiremovies.party";
+        const { getBaseUrl, axios, cheerio } = providerContext;
+        const baseUrlRaw = await getBaseUrl("desire");
+        const baseUrl = baseUrlRaw.replace(/\/$/, "");
         const trimmedQuery = query?.trim();
         const isSearch = !!trimmedQuery;
         let url: string;
 
         // --- Build URL for search query or category filter
         if (isSearch) {
-            // URL structure: /page/X/?s=query (Using path-based pagination for robustness)
             const pathPrefix = page > 1 ? `/page/${page}` : "";
             url = `${baseUrl}${pathPrefix}/?s=${encodeURIComponent(trimmedQuery)}`;
         } else {
-            // CATEGORY/HOMEPAGE URL: /filter/page/X or /page/X
             let path = filter || "";
-            path = path.replace(/^\/+/, '').replace(/\/+$/, ''); // Normalize path
-            
+            path = path.replace(/^\/+/, '').replace(/\/+$/, '');
             url = `${baseUrl}/${path}`;
-            
             if (page > 1) {
                 url = `${url}/page/${page}`;
             }
         }
 
-        // --- Determine Headers ---
         const requestHeaders = isSearch
-            ? { ...defaultHeaders, ...searchHeaders } // Merge default with specific search headers (overwriting defaults)
+            ? { ...defaultHeaders, ...searchHeaders }
             : defaultHeaders;
 
-        const { axios, cheerio } = providerContext;
         let res;
         const maxRetries = 3;
 
-        // --- Use Retry Logic ---
         for (let i = 0; i < maxRetries; i++) {
             try {
                 res = await axios.get(url, { 
-                    headers: requestHeaders, // Use the dynamically determined headers
+                    headers: requestHeaders,
                     signal,
                     timeout: 15000,
                 });
@@ -124,7 +119,6 @@ async function fetchPosts({
                 if (!isSearch || i === maxRetries - 1) {
                     throw error;
                 }
-                console.warn(`Search request failed, retry ${i + 1}/${maxRetries}. Waiting...`);
                 await sleep(1000 * (i + 1));
             }
         }
@@ -134,13 +128,11 @@ async function fetchPosts({
         }
 
         const $ = cheerio.load(res.data || "");
-
         const resolveUrl = (href: string) =>
             href?.startsWith("http") ? href : new URL(href, url).href;
 
         const seen = new Set<string>();
         const catalog: Post[] = [];
-
         // --- POST SELECTORS ---
         const POST_SELECTORS = [
             "article",              
@@ -157,37 +149,24 @@ async function fetchPosts({
             let title = "";
             let image = "";
 
-            // 1. PRIMARY LINK/TITLE EXTRACTION
-            const primaryAnchor = card.find("h2 a, h3 a, a[rel='bookmark'], .entry-title a").first();
+            // 1. PRIMARY LINK/TITLE EXTRACTION (Updated Selector)
+            const primaryAnchor = card.find("h3.mh-loop-title a, h2 a, .entry-title a").first();
             
             if (primaryAnchor.length) {
                 link = primaryAnchor.attr("href") || "";
                 title = primaryAnchor.text().trim();
             }
 
-            // 2. Fallback Link (from image wrapper)
-            if (!link) {
-                const imgAnchor = card.find("figure a[href], .thumb a[href]").first();
-                link = imgAnchor.attr("href") || "";
-            }
-
-            // 3. Fallback Title (from attribute/alt text)
-            if (!title) {
-                title = card.find("a[title]").first().attr("title")?.trim() || 
-                                card.find("img").first().attr("alt")?.trim() ||
-                                "";
-            }
-            
-            // 4. IMAGE EXTRACTION
-            const imgEl = card.find("img").first();
-            const img = imgEl.attr("src") || imgEl.attr("data-src") || imgEl.attr("data-original") || "";
+            // 2. IMAGE EXTRACTION (Updated Selector)
+            const imgEl = card.find(".mh-loop-thumb img, img").first();
+            const img = imgEl.attr("src") || imgEl.attr("data-src") || "";
             image = img ? resolveUrl(img) : "";
 
 
             // --- Final Validation and Cleaning ---
             if (!link) return;
             link = resolveUrl(link);
-            if (seen.has(link)) return;
+            if (seen.has(link) || link === baseUrl || link === baseUrl + "/") return;
 
             // Clean up title
             title = title.replace(/\[.*?\]/g, "").replace(/\(.+?\)/g, "").replace(/\{.*?\}/g, "").replace(/\s{2,}/g, " ").trim();

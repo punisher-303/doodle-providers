@@ -12,11 +12,12 @@ export const getPosts = async function ({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { axios } = providerContext;
-  const baseUrl = "https://backend.animetsu.to";
+  const { getBaseUrl, axios } = providerContext;
+  const baseUrl = (await getBaseUrl("animetsu")) || "https://backend.animetsu.to";
+  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
 
   // Parse filter to modify page parameter
-  const url = baseUrl + filter + "&page=" + page.toString();
+  const url = cleanBaseUrl + filter + "&page=" + page.toString();
   console.log("animetsuGetPosts url", url);
 
   return posts({ url: url.toString(), signal, axios });
@@ -34,9 +35,10 @@ export const getSearchPosts = async function ({
   signal: AbortSignal;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { axios } = providerContext;
-  const baseUrl = "https://backend.animetsu.to";
-  const url = `${baseUrl}/api/anime/search?query=${encodeURIComponent(
+  const { getBaseUrl, axios } = providerContext;
+  const baseUrl = (await getBaseUrl("animetsu")) || "https://backend.animetsu.to";
+  const cleanBaseUrl = baseUrl.replace(/\/+$/, "");
+  const url = `${cleanBaseUrl}/api/anime/search?query=${encodeURIComponent(
     searchQuery
   )}&page=${page}&perPage=35&year=any&sort=favourites&season=any&format=any&status=any`;
 

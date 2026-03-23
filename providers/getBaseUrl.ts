@@ -13,11 +13,30 @@ export const getBaseUrl = async (providerValue: string) => {
     // if (cachedUrl && cachedTime && Date.now() - cachedTime < expireTime) {
     //   baseUrl = cachedUrl;
     // } else {
-    const baseUrlRes = await fetch(
-      "https://himanshu8443.github.io/providers/modflix.json"
-    );
-    const baseUrlData = await baseUrlRes.json();
-    baseUrl = baseUrlData[providerValue].url;
+    const localMapPath = "./modflix.json";
+    let baseUrlData: any = {};
+
+    try {
+        // Try local file first (for development/audit)
+        const fs = require('fs');
+        if (fs.existsSync(localMapPath)) {
+            baseUrlData = JSON.parse(fs.readFileSync(localMapPath, 'utf8'));
+        } else {
+            // Fallback to remote
+            const baseUrlRes = await fetch(
+                "https://himanshu8443.github.io/providers/modflix.json"
+            );
+            baseUrlData = await baseUrlRes.json();
+        }
+    } catch (e) {
+        // Fallback to remote if local fails
+        const baseUrlRes = await fetch(
+            "https://himanshu8443.github.io/providers/modflix.json"
+        );
+        baseUrlData = await baseUrlRes.json();
+    }
+    
+    baseUrl = baseUrlData[providerValue]?.url || "";
     // cacheStorageService.setString(cacheKey, baseUrl);
     // cacheStorageService.setObject(timeKey, Date.now());
     // }

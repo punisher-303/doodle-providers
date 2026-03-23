@@ -83,8 +83,16 @@ export const getStream = async function ({
     };
     console.log("modGetStream", type, url);
     if (type === "movie") {
-      const servers = await modGetEpisodeLinks({ url, providerContext });
-      url = servers[0].link || url;
+      const res = await axios.get(url, { headers });
+      const $ = cheerio.load(res.data);
+      const downloadLinksBtn = $("a.maxbutton-download-links, a.maxbutton-1, a:contains('Download Links')");
+      if (downloadLinksBtn.length > 0) {
+        const btnLink = downloadLinksBtn.first().attr("href");
+        if (btnLink) url = btnLink;
+      } else {
+        const servers = await modGetEpisodeLinks({ url, providerContext });
+        url = servers[0].link || url;
+      }
     }
 
     let downloadLink = await modExtractor(url, providerContext);

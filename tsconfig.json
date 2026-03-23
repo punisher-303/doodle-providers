@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "es2018",
     "module": "commonjs",
     "rootDir": "./providers",
     "outDir": "./dist",
@@ -9,6 +9,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["providers/torrent/**/*", "providers/movieBoxAPI/**/*", "providers/types.ts"],
+  "include": ["providers/**/*", "providers/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

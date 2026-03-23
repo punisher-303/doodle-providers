@@ -1,190 +1,362 @@
 {
-    "Moviesmod": {
-        "name": "Moviesmod",
-        "url": "https://moviesmod.town"
-    },
-    "Animeflix": {
-        "name": "Animeflix",
-        "url": "https://ww3.animeflix.ltd"
-    },
-    "Topmovies": {
-        "name": "Topmovies",
-        "url": "https://moviesleech.zip"
-    },
-    "UhdMovies": {
-        "name": "UhdMovies",
-        "url": "https://uhdmovies.loan"
-    },
-    "filepress": {
-        "name": "filepress",
-        "url": "https://new14.filepress.store"
-    },
-    "Vega": {
-        "name": "vegamovies",
-        "url": "https://vegamovies.gratis"
-    },
-    "lux": {
-        "name": "luxmovies",
-        "url": "https://rogmovies.world"
-    },
-    "drive": {
-        "name": "moviesDrive",
-        "url": "https://new1.moviesdrive.surf/"
-    },
-    "multi": {
-        "name": "multimovies",
-        "url": "https://multimovies.gripe"
-    },
-    "w4u": {
-        "name": "world4ufree",
-        "url": "https://world4ufree.phd"
-    },
-    "extra": {
-        "name": "extraMovies",
-        "url": "https://extramovies.ist"
-    },
-    "hdhub": {
-        "name": "hdhub4u",
-        "url": "https://new3.hdhub4u.fo"
-    },
-    "kat": {
-        "name": "katmovieshd",
-        "url": "https://katmoviehd.pictures"
-    },
-    "dc": {
-        "name": "dramacool",
-        "url": "https://dramacool.org.ro"
-    },
-    "dooflix": {
-        "name": "dooflix",
-        "url": "https://dooflixpanel.com"
-    },
-    "autoEmbed": {
-        "name": "autoEmbed",
-        "url": "https://autoembed.cc"
-    },
-    "aed": {
-        "name": "autoEmbedDrama",
-        "url": "https://watch-drama.autoembed.cc"
-    },
-    "aea": {
-        "name": "autoEmbedAnime",
-        "url": "https://watch-anime.autoembed.cc"
-    },
-    "tokyoinsider": {
-        "name": "tokyoinsider",
-        "url": "https://www.tokyoinsider.com"
-    },
-    "consumet": {
-        "name": "consumet",
-        "url": "https://consumet.zendax.tech"
-    },
-    "nfMirror": {
-        "name": "nfMirror",
-        "url": "https://net20.cc"
-    },
-    "primewire": {
-        "name": "primewire",
-        "url": "https://primewire.si"
-    },
-    "rive": {
-        "name": "rive",
-        "url": "https://www.rivestream.app"
-    },
-    "kissKh": {
-        "name": "kissKh",
-        "url": "https://kisskh.do"
-    },
-    "vadapav": {
-        "name": "vadapav",
-        "url": "https://vadapav.mov"
-    },
-    "cinemaLuxe": {
-        "name": "cinemaLuxe",
-        "url": "https://cinemalux.cyou"
-    },
-    "showbox": {
-        "name": "showbox",
-        "url": "https://www.showbox.media"
-    },
-    "animerulz": {
-        "name": "animerulz",
-        "url": "https://animerulz.co"
-    },
-    "moviesapi": {
-        "name": "moviesapi",
-        "url": "https://moviesapi.club"
-    },
-    "ridomovies": {
-        "name": "ridomovies",
-        "url": "https://ridomovies.tv"
-    },
-    "protonMovies": {
-        "name": "protonMovies",
-        "url": "https://m.protonmovies.space"
-    },
-    "dramafull": {
-        "name": "dramafull",
-        "url": "https://dramafull.cc"
-    },
-    "nfCookie": {
-        "name": "nf cookie verify",
-        "url": "https://userverify.netmirror.app"
-    },
-    "embedsu": {
-        "name": "embedsu",
-        "url": "https://moviemaze.cc"
-    },
-    "filmyfly": {
-        "name": "flimyfly",
-        "url": "https://filmyfiy.fyi"
-    },
-    "4khdhub": {
-        "name": "4khdhub",
-        "url": "https://4khdhub.dad"
-    },
-    "moviezwap": {
-        "name": "moviezwap",
-        "url": "https://www.moviezwap.sarl/"
-    },
-    "9xflix": {
-        "name": "9xflix",
-        "url": "https://9xflix.fans"
-    },
-    "movieBox": {
-        "name": "MovieBox",
-        "url": "https://api6.aoneroom.com"
-    },
-    "cinevood": {
-        "name": "Cinevood",
-        "url": "https://kmmovies.store"
-    },
-    "kmmovies": {
-        "name": "kmmovies",
-        "url": "https://kmmovies.store"
-    },
-    "zeefliz": {
-        "name": "zeefliz",
-        "url": "https://zeefliz.life"
-    },
-    "katmoviefix": {
-        "name": "katmoviefix",
-        "url": "https://katmoviefix.beer"
-    },
-    "movies4u": {
-        "name": "movies4u",
-        "url": "https://movies4u.am"
-    },
-    "joya9tv": {
-        "name": "joya9tv1",
-        "url": "https://joya9tv1.com"
-    },
-    "skymovieshd": {
-        "name": "skyMovesHd",
-        "url": "https://skymovieshd.mba"
-    },
-    "1cinevood": {
-        "name": "cinewood",
-        "url": "https://proxy01.cvproxy.workers.dev"
-    }
+  "Moviesmod": {
+    "name": "Moviesmod",
+    "url": "https://moviesmod.town"
+  },
+  "Animeflix": {
+    "name": "Animeflix",
+    "url": "https://ww3.animeflix.ltd"
+  },
+  "Topmovies": {
+    "name": "Topmovies",
+    "url": "https://moviesleech.zip"
+  },
+  "UhdMovies": {
+    "name": "UhdMovies",
+    "url": "https://uhdmovies.loan"
+  },
+  "filepress": {
+    "name": "filepress",
+    "url": "https://new14.filepress.store"
+  },
+  "Vega": {
+    "name": "doodlemovies",
+    "url": "https://vegamovies.gratis/"
+  },
+  "luxMovies": {
+    "name": "luxmovies",
+    "url": "https://rogmovies.in/"
+  },
+  "drive": {
+    "name": "moviesDrive",
+    "url": "https://new1.moviesdrives.my/"
+  },
+  "multi": {
+    "name": "multimovies",
+    "url": "https://multimovies.sarl/"
+  },
+  "w4u": {
+    "name": "world4ufree",
+    "url": "https://world4ukfree.prof/"
+  },
+  "extra": {
+    "name": "extraMovies",
+    "url": "https://extramovies.ist"
+  },
+  "hdhub": {
+    "name": "hdhub4u",
+    "url": "https://new5.hdhub4u.fo/"
+  },
+  "kat": {
+    "name": "katmovieshd",
+    "url": "https://katmoviehd.pictures/"
+  },
+  "dc": {
+    "name": "dramacool",
+    "url": "https://dramacool.org.ro"
+  },
+  "dooflix": {
+    "name": "dooflix",
+    "url": "https://moviesnation.pizza"
+  },
+  "autoEmbed": {
+    "name": "autoEmbed",
+    "url": "https://autoembed.cc"
+  },
+  "aed": {
+    "name": "autoEmbedDrama",
+    "url": "https://watch-drama.autoembed.cc"
+  },
+  "aea": {
+    "name": "autoEmbedAnime",
+    "url": "https://watch-anime.autoembed.cc"
+  },
+  "animetsu": {
+    "name": "animetsu",
+    "url": "https://backend.animetsu.to/"
+  },
+  "tokyoinsider": {
+    "name": "tokyoinsider",
+    "url": "https://www.tokyoinsider.com"
+  },
+  "consumet": {
+    "name": "consumet",
+    "url": "https://consumet.zendax.tech"
+  },
+  "nfMirror": {
+    "name": "nfMirror",
+    "url": "https://net20.cc"
+  },
+  "primewire": {
+    "name": "primewire",
+    "url": "https://newprimewire.org/"
+  },
+  "rive": {
+    "name": "rive",
+    "url": "https://www.rivestream.app"
+  },
+  "kissKh": {
+    "name": "kissKh",
+    "url": "https://kisskh.do"
+  },
+  "stream": {
+    "name": "stream",
+    "url": "https://movies4u.nexus"
+  },
+  "cinemaLuxe": {
+    "name": "cinemaLuxe",
+    "url": "https://vegamovies.ks.ua"
+  },
+  "showbox": {
+    "name": "showbox",
+    "url": "https://hdbolly4u.info/"
+  },
+  "animerulz": {
+    "name": "animerulz",
+    "url": "https://animerulz.co"
+  },
+  "moviesapi": {
+    "name": "moviesapi",
+    "url": "https://moviesapi.club"
+  },
+  "ridoMovies": {
+    "name": "ridomovies",
+    "url": "https://ridomovies.tv/"
+  },
+  "protonMovies": {
+    "name": "protonMovies",
+    "url": "https://m.protonmovies.space"
+  },
+  "dramafull": {
+    "name": "dramafull",
+    "url": "https://dramafull.cc"
+  },
+  "nfCookie": {
+    "name": "nf cookie verify",
+    "url": "https://userverify.netmirror.app"
+  },
+  "embedsu": {
+    "name": "embedsu",
+    "url": "https://moviemaze.cc"
+  },
+  "filmyfly": {
+    "name": "flimyfly",
+    "url": "https://filmyfiy.fyi"
+  },
+  "4khdhub": {
+    "name": "4khdhub",
+    "url": "https://4khdhub.dad"
+  },
+  "moviezwap": {
+    "name": "moviezwap",
+    "url": "https://www.moviezwap.toys/"
+  },
+  "9xflix": {
+    "name": "9xflix",
+    "url": "https://9xflix.kim/m/"
+  },
+  "movieBox": {
+    "name": "MovieBox",
+    "url": "https://api6.aoneroom.com"
+  },
+  "cinevood": {
+    "name": "Cinevood",
+    "url": "https://kmmovies.store"
+  },
+  "kmmovies": {
+    "name": "kmmovies",
+    "url": "https://kmmovies.store"
+  },
+  "zeefliz": {
+    "name": "zeefliz",
+    "url": "https://zeefliz.life"
+  },
+  "katmoviefix": {
+    "name": "katmoviefix",
+    "url": "https://katmoviefix.beer"
+  },
+  "movies4u": {
+    "name": "movies4u",
+    "url": "https://movies4u.am"
+  },
+  "joya9tv": {
+    "name": "joya9tv1",
+    "url": "https://joya9tv1.com"
+  },
+  "skymovieshd": {
+    "name": "skyMovesHd",
+    "url": "https://skymovieshd.mba/"
+  },
+  "flixhq": {
+    "name": "FlixHQ",
+    "url": "https://flixhq.to/"
+  },
+  "1cinevood": {
+    "name": "1cinevood",
+    "url": "https://proxy01.cvproxy.workers.dev"
+  },
+  "khatri": {
+    "name": "khatri",
+    "url": "https://khatrimazafull1.shop"
+  },
+  "cinema": {
+    "name": "cinema",
+    "url": "https://vegamovieshub.cfd"
+  },
+  "7starhd": {
+    "name": "7starhd",
+    "url": "https://7starhd.soy/"
+  },
+  "animeheaven": {
+    "name": "animeheaven",
+    "url": "https://animeheaven.me"
+  },
+  "animesalt": {
+    "name": "animesalt",
+    "url": "https://animesalt.top"
+  },
+  "animeworld": {
+    "name": "animeworld",
+    "url": "https://watchanimeworld.net"
+  },
+  "bolly4u": {
+    "name": "bolly4u",
+    "url": "https://bolly4u.fyi/"
+  },
+  "bollyflix": {
+    "name": "bollyflix",
+    "url": "https://bollyflix.run/"
+  },
+  "7info": {
+    "name": "7info",
+    "url": "https://7starmv.info"
+  },
+  "desire": {
+    "name": "desire",
+    "url": "https://1desiremovies.tel/"
+  },
+  "filmy": {
+    "name": "filmy",
+    "url": "https://ofilmyzilla.net"
+  },
+  "maze": {
+    "name": "maze",
+    "url": "https://a.111477.xyz"
+  },
+  "movieflix": {
+    "name": "movieflix",
+    "url": "https://moviesflix8.com"
+  },
+  "anihub": {
+    "name": "anihub",
+    "url": "https://anihub.in"
+  },
+  "9anime": {
+    "name": "9anime",
+    "url": "https://9animetv.to"
+  },
+  "ssrmovies": {
+    "name": "ssrmovies",
+    "url": "https://ssrmovies.ngo/"
+  },
+  "woodclub": {
+    "name": "woodclub",
+    "url": "https://movieswood.club"
+  },
+  "zink": {
+    "name": "zink",
+    "url": "https://new4.zinkmovies.vip"
+  },
+  "filmycab": {
+    "name": "filmycab",
+    "url": "https://filmycab.fyi"
+  },
+  "tamilian": {
+    "name": "tamilian",
+    "url": "https://tamilian.io"
+  },
+  "movietp": {
+    "name": "movietp",
+    "url": "https://myflixbd.to"
+  },
+  "ogo": {
+    "name": "ogo",
+    "url": "https://0gomovies.tel"
+  },
+  "micho": {
+    "name": "micho",
+    "url": "https://www.thaireland.ie"
+  },
+  "ehubm": {
+    "name": "ehubm",
+    "url": "https://extramovies.casa/"
+  },
+  "mkvhub": {
+    "name": "mkvhub",
+    "url": "https://www.mkvhub.quest/"
+  },
+  "hdmovie2": {
+    "name": "hdmovie2",
+    "url": "https://hdmovij2.com/"
+  },
+  "asianctv": {
+    "name": "asianctv",
+    "url": "https://dramanicee.lat"
+  },
+  "dude": {
+    "name": "dude",
+    "url": "https://dudefilms.esq"
+  },
+  "fibwatch": {
+    "name": "fibwatch",
+    "url": "https://fibwatch.biz"
+  },
+  "fibtoon": {
+    "name": "fibtoon",
+    "url": "https://fibtoon.top"
+  },
+  "fibdrama": {
+    "name": "fibdrama",
+    "url": "https://fibwatchdrama.xyz"
+  },
+  "vsite": {
+    "name": "vsite",
+    "url": "https://vegamoviesog.site"
+  },
+  "hindim": {
+    "name": "hindim",
+    "url": "https://hindmoviez.cafe"
+  },
+  "moviesflix": {
+    "name": "moviesflix",
+    "url": "https://9xmovie.co/"
+  },
+  "moviespapa": {
+    "name": "moviespapa",
+    "url": "https://moviespapa.monster/"
+  },
+  "MovieTP": {
+    "name": "MovieTP",
+    "url": "https://movietp.xyz/"
+  },
+  "kaido": {
+    "name": "kaido",
+    "url": "https://kaido.to/"
+  },
+  "hianime": {
+    "name": "hianime",
+    "url": "https://hianime.do/"
+  },
+  "tamilblaster": {
+    "name": "tamilblaster",
+    "url": "https://1tamilblasters.courses/"
+  },
+  "screenscape": {
+    "name": "screenscape",
+    "url": "https://screenscape.me/"
+  },
+  "dramakey": {
+    "name": "DramaKey",
+    "url": "https://dramakey.com/"
+  }
 }

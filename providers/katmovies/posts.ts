@@ -50,20 +50,21 @@ async function posts({
     const data = await res.text();
     const $ = cheerio.load(data);
     const catalog: Post[] = [];
-    $(".recent-posts")
-      .children()
-      .map((i, element) => {
-        const title = $(element).find("img").attr("alt");
-        const link = $(element).find("a").attr("href");
-        const image = $(element).find("img").attr("src");
-        if (title && link && image) {
-          catalog.push({
-            title: title.replace("Download", "").trim(),
-            link: link,
-            image: image,
-          });
-        }
-      });
+    $(".post, article, .recent-posts > div").each((_i, element) => {
+      const el = $(element);
+      const linkEl = el.find("a[title], h2 a, a").first();
+      const title = linkEl.attr("title") || el.find("img").attr("alt");
+      const link = linkEl.attr("href");
+      const image = el.find("img").attr("src") || el.find("img").attr("data-src");
+
+      if (title && link && image) {
+        catalog.push({
+          title: title.replace(/^Download\s*[:-]?/i, "").trim(),
+          link: link,
+          image: image,
+        });
+      }
+    });
     return catalog;
   } catch (err) {
     console.error("katmovies error ", err);

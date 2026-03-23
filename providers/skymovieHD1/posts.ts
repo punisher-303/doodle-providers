@@ -21,17 +21,17 @@ function extractMovieName(title: string): string {
 }
 
 // --- Fetch poster from OMDb ---
-async function fetchPoster(movieName: string): Promise<string> {
+async function fetchPoster(movieName: string, axios: ProviderContext["axios"]): Promise<string> {
   try {
-    const res = await fetch(
+    const res = await axios.get(
       `https://www.omdbapi.com/?t=${encodeURIComponent(movieName)}&apikey=${OMDB_API_KEY}`
     );
-    const data = await res.json();
+    const data = res.data;
     if (data && data.Poster && data.Poster !== "N/A") {
       return data.Poster;
     }
-  } catch (e) {
-    console.error("Poster fetch error:", e);
+  } catch (e: any) {
+    console.error("Poster fetch error:", e.message);
   }
   return "";
 }
@@ -81,21 +81,20 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const baseUrl = "https://skymovieshd.mba";
+    const { getBaseUrl, axios, cheerio } = providerContext;
+    const baseUrlRaw = await getBaseUrl("skymovieshd");
+    const baseUrl = baseUrlRaw.replace(/\/$/, "");
     let url: string;
 
     if (query && query.trim()) {
-      // 🔹 Fixed Search URL
       url = `${baseUrl}/search.php?search=${encodeURIComponent(query)}&cat=All`;
     } else if (filter) {
-      url = filter.startsWith("/")
-        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
-        : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+      const cleanFilter = filter.startsWith("/") ? filter : `/${filter}`;
+      url = `${baseUrl}${cleanFilter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`;
     } else {
       url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
     }
 
-    const { axios, cheerio } = providerContext;
     const res = await axios.get(url, { headers: defaultHeaders, signal });
     const $ = cheerio.load(res.data || "");
 
@@ -106,7 +105,7 @@ async function fetchPosts({
     const catalog: Post[] = [];
 
     // 🔹 Try primary movie link selectors
-    $("a[href*='?id='], a[href*='.html']").each((_, el) => {
+    $("a[href*='?id='], a[href*='.html'], a.movie-link").each((_, el) => {
       const anchor = $(el);
       let link = anchor.attr("href") || "";
       if (!link) return;
@@ -123,7 +122,7 @@ async function fetchPosts({
     // 🔹 Fetch OMDb poster for each movie name
     for (const post of catalog) {
       const movieName = extractMovieName(post.title);
-      post.image = await fetchPoster(movieName);
+      post.image = await fetchPoster(movieName, axios);
     }
 
     return catalog.slice(0, 100);

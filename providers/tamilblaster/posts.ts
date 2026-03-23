@@ -1,7 +1,5 @@
 import { Post, ProviderContext } from "../types";
 
-const BASE_URL = "https://www.1tamilblasters.business";
-
 export async function getPosts({
   page = 1,
   filter,
@@ -11,22 +9,31 @@ export async function getPosts({
   filter?: string;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { axios, cheerio } = providerContext;
+  const { getBaseUrl, axios, cheerio } = providerContext;
 
-  const url = `${BASE_URL}/page/${page}`;
+  const baseUrlRaw = await getBaseUrl("tamilblaster");
+  const baseUrl = baseUrlRaw.replace(/\/$/, "");
+  const url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
+  
   const res = await axios.get(url);
   const $ = cheerio.load(res.data);
 
   const posts: Post[] = [];
 
-  $("div.article-content-col").each((_, el) => {
+  // Updated based on forum structure
+  $("div.ipsType_break").each((_, el) => {
     const card = $(el);
+    const anchor = card.find("a");
 
-    const link = card.find("h2 a").attr("href");
+    let link = anchor.attr("href") || "";
     if (!link) return;
+    link = link.startsWith("http") ? link : new URL(link, baseUrl).href;
 
-    const title = card.find("h2 a").text().trim();
-    const image = card.find("img").attr("src") || "";
+    const title = anchor.text().trim();
+    if (!title) return;
+
+    // Image is usually in the parent or nearby in the board view
+    const image = card.closest("article").find("img").attr("src") || "";
 
     posts.push({
       title,
@@ -47,22 +54,29 @@ export async function getSearchPosts({
   page?: number;
   providerContext: ProviderContext;
 }): Promise<Post[]> {
-  const { axios, cheerio } = providerContext;
+  const { getBaseUrl, axios, cheerio } = providerContext;
 
-  const url = `${BASE_URL}/?s=${encodeURIComponent(searchQuery)}`;
+  const baseUrlRaw = await getBaseUrl("tamilblaster");
+  const baseUrl = baseUrlRaw.replace(/\/$/, "");
+  const url = `${baseUrl}/search/?q=${encodeURIComponent(searchQuery)}`;
+  
   const res = await axios.get(url);
   const $ = cheerio.load(res.data);
 
   const posts: Post[] = [];
 
-  $("div.article-content-col").each((_, el) => {
+  $("div.ipsType_break").each((_, el) => {
     const card = $(el);
+    const anchor = card.find("a");
 
-    const link = card.find("h2 a").attr("href");
+    let link = anchor.attr("href") || "";
     if (!link) return;
+    link = link.startsWith("http") ? link : new URL(link, baseUrl).href;
 
-    const title = card.find("h2 a").text().trim();
-    const image = card.find("img").attr("src") || "";
+    const title = anchor.text().trim();
+    if (!title) return;
+
+    const image = card.closest("article").find("img").attr("src") || "";
 
     posts.push({
       title,

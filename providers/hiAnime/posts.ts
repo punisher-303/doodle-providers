@@ -56,64 +56,43 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const baseUrl = "https://hianime.cymru";
+    const { getBaseUrl, axios, cheerio } = providerContext;
+    const baseUrlRaw = await getBaseUrl("hianime");
+    const baseUrl = baseUrlRaw.replace(/\/$/, "");
     let url: string;
 
-    // URL बनाना: search / filter / homepage
+    // ✅ URL Build (Zoro/HiAnime engine)
     if (query && query.trim()) {
-      url = `${baseUrl}/?s=${encodeURIComponent(query)}${page > 1 ? `&paged=${page}` : ""}`;
+      url = `${baseUrl}/search?keyword=${encodeURIComponent(query.trim())}${page > 1 ? `&page=${page}` : ""}`;
     } else if (filter) {
-      url = filter.startsWith("/")
-        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
-        : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+      const clean = filter.startsWith("/") ? filter : `/${filter}`;
+      url = `${baseUrl}${clean}${page > 1 ? `?page=${page}` : ""}`;
     } else {
-      url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
+      url = `${baseUrl}/az-list`; // hiAnime uses /az-list for a full catalog if /home is blocked
     }
 
-    const { axios, cheerio } = providerContext;
     const res = await axios.get(url, { headers: defaultHeaders, signal });
     const $ = cheerio.load(res.data || "");
+    const catalog: Post[] = [];
+    const seen = new Set<string>();
 
     const resolveUrl = (href: string) =>
-      href?.startsWith("http") ? href : new URL(href, url).href;
+      href?.startsWith("http") ? href : new URL(href, baseUrl).href;
 
-    const seen = new Set<string>();
-    const catalog: Post[] = [];
-
-    // --- selectors update: catalog + search results
-    const POST_SELECTORS = [
-      ".pstr_box",
-      "article",
-      ".result-item",
-      ".post",
-      ".item",
-      ".thumbnail",
-      ".latest-movies",
-      ".movie-item",
-      ".search-results .item",   // search page selector
-      ".search-results article", // extra safe
-    ].join(",");
-
-    $(POST_SELECTORS).each((_, el) => {
-      const card = $(el);
-      let link = card.find("a[href]").first().attr("href") || "";
+    // ✅ Zoro Engine Selectors: .flw-item
+    $(".flw-item").each((_, el) => {
+      const item = $(el);
+      
+      let link = item.find(".film-name a").attr("href") || item.find("a.film-poster-ahref").attr("href") || "";
       if (!link) return;
       link = resolveUrl(link);
       if (seen.has(link)) return;
 
-      let title =
-        card.find("h2").first().text().trim() ||
-        card.find("a[title]").first().attr("title")?.trim() ||
-        card.text().trim();
-
-      title = title.replace(/\[.*?\]/g, "").replace(/\(.+?\)/g, "").replace(/\s{2,}/g, " ").trim();
+      const title = item.find(".film-name a").text().trim() || item.find("img").attr("alt")?.trim() || "";
       if (!title) return;
 
-      const img =
-        card.find("img").first().attr("src") ||
-        card.find("img").first().attr("data-src") ||
-        card.find("img").first().attr("data-original") ||
-        "";
+      let img = item.find("img").attr("data-src") || item.find("img").attr("src") || "";
+      if (img.startsWith("//")) img = "https:" + img;
       const image = img ? resolveUrl(img) : "";
 
       seen.add(link);
@@ -122,7 +101,7 @@ async function fetchPosts({
 
     return catalog.slice(0, 100);
   } catch (err) {
-    console.error("movies4u fetchPosts error:", err instanceof Error ? err.message : String(err));
+    console.error("HiAnime fetchPosts error:", err instanceof Error ? err.message : String(err));
     return [];
   }
 }

@@ -56,47 +56,56 @@ async function fetchPosts({
   providerContext: ProviderContext;
 }): Promise<Post[]> {
   try {
-    const baseUrl = "https://7starhd.sarl";
+    const { getBaseUrl, axios, cheerio } = providerContext;
+    const baseUrlRaw = await getBaseUrl("7starhd");
+    const baseUrl = baseUrlRaw.replace(/\/$/, "");
     let url: string;
 
     // --- Build URL for category filter or search query
     if (query && query.trim()) {
       url = `${baseUrl}/?s=${encodeURIComponent(query)}${page > 1 ? `&paged=${page}` : ""}`;
     } else if (filter) {
-      url = filter.startsWith("/")
-        ? `${baseUrl}${filter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`
-        : `${baseUrl}/${filter}${page > 1 ? `/page/${page}` : ""}`;
+      const cleanFilter = filter.startsWith("/") ? filter : `/${filter}`;
+      url = `${baseUrl}${cleanFilter.replace(/\/$/, "")}${page > 1 ? `/page/${page}` : ""}`;
     } else {
       url = `${baseUrl}${page > 1 ? `/page/${page}` : ""}`;
     }
 
-    const { axios, cheerio } = providerContext;
     const res = await axios.get(url, { headers: defaultHeaders, signal });
     const $ = cheerio.load(res.data || "");
+
+    const resolveUrl = (href: string) =>
+      href?.startsWith("http") ? href : new URL(href, baseUrl).href;
 
     const seen = new Set<string>();
     const catalog: Post[] = [];
 
-    // --- Parse each movie thumb block ---
-    $(".home-wrapper .thumb").each((_, el) => {
+    // --- Parse each movie block ---
+    $(".home-wrapper .thumb, .post, .item").each((_, el) => {
       const card = $(el);
 
-      const link = card.find("a[href]").first().attr("href")?.trim();
+      const linkEl = card.find("a.thumbtitle, a[href]").first();
+      const link = linkEl.attr("href")?.trim();
       if (!link || seen.has(link)) return;
 
       const title =
+        linkEl.text().trim() ||
         card.find(".thumbtitle").text().trim() ||
         card.find("img").attr("alt")?.trim() ||
-        card.find("a[title]").attr("title")?.trim() ||
         "Untitled";
 
+      const imageEl = card.find("figure img, img").first();
       const image =
-        card.find("img").attr("src")?.trim() ||
-        card.find("img").attr("data-src")?.trim() ||
+        imageEl.attr("src")?.trim() ||
+        imageEl.attr("data-src")?.trim() ||
         "";
 
       seen.add(link);
-      catalog.push({ title, link, image });
+      catalog.push({ 
+        title: title.replace(/^Download\s*/i, "").trim(), 
+        link: resolveUrl(link), 
+        image: image ? resolveUrl(image) : "" 
+      });
     });
 
     return catalog.slice(0, 100);
