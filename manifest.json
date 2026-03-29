@@ -135,7 +135,7 @@
   {
     "display_name": "MovieBox",
     "value": "movieBox",
-    "version": "3.0",
+    "version": "3.1",
     "icon": "",
     "type": "global",
     "category": "movie/tvshow",
@@ -196,6 +196,15 @@
     "disabled": true
   },
   {
+    "display_name": "Piratexplay",
+    "value": "piratexplay",
+    "version": "0.1",
+    "icon": "https://piratexplay.cc/public/img/favicon/apple-icon-144x144.png",
+    "type": "global",
+    "category": "anime",
+    "disabled": false
+  },
+  {
     "display_name": "MoviesApi",
     "value": "moviesApi",
     "version": "2.8",
@@ -216,7 +225,7 @@
   {
     "display_name": "ShowBox",
     "value": "showbox",
-    "version": "3.1",
+    "version": "3.2",
     "icon": "https://www.showbox.media/favicon.ico",
     "type": "india",
     "category": "movie/tvshow",
@@ -261,7 +270,7 @@
   {
     "display_name": "Animetsu",
     "value": "animetsu",
-    "version": "2.9",
+    "version": "3.0",
     "icon": "https://animetsu.cc/favicon-32x32.png",
     "type": "english",
     "category": "anime",
@@ -373,6 +382,15 @@
     "icon": "https://www.ofilmyzilla.dog/templates/images/fev.png",
     "type": "india",
     "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
+    "display_name": "Bollyzone",
+    "value": "bollyzone",
+    "version": "0.1",
+    "icon": "https://www.bollyzone.to/wp-content/uploads/2021/10/cropped-bollyzone-fav-180x180.png",
+    "type": "global",
+    "category": "tvserial/tvshow",
     "disabled": false
   },
   {
@@ -493,6 +511,15 @@
     "disabled": false
   },
   {
+    "display_name": "Desiseriel",
+    "value": "desiserial",
+    "version": "0.1",
+    "icon": "https://www.desi-serials.to/wp-content/uploads/2019/09/fav.png",
+    "type": "global",
+    "category": "tvserial/tvshow",
+    "disabled": false
+  },
+  {
     "display_name": "DesireMovie",
     "value": "DesireMovie",
     "version": "2.7",
@@ -603,7 +630,7 @@
   {
     "display_name": "Kaido",
     "value": "Kaido",
-    "version": "2.3",
+    "version": "2.4",
     "icon": "https://kaido.to/images/favicon.png?v=0.1",
     "type": "global",
     "category": "anime",
@@ -774,7 +801,7 @@
   {
     "display_name": "Toonhub",
     "value": "toonhub",
-    "version": "2.2",
+    "version": "2.3",
     "icon": "https://toonhub4u.co/wp-content/uploads/2024/02/cropped-cropped-TOONHUB4U-180x180.jpg",
     "type": "global",
     "category": "anime",
