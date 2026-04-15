@@ -233,7 +233,7 @@ async function customizeParameters(sampleParams, functionName) {
 
 // Main interactive loop
 async function main() {
-  console.log("🚀 Vega Providers Interactive Tester");
+  console.log("🚀 Doodle Providers Interactive Tester");
   console.log("=====================================");
 
   const providers = getAvailableProviders();
