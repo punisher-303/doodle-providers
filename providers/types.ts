@@ -1,7 +1,9 @@
+// providers/types.ts
+
 import { AxiosStatic } from "axios";
 import * as cheerio from "cheerio";
 
-// Content type for providers (replaces zustand import)
+// Content type for providers
 export interface Content {
   provider: string;
   [key: string]: any;
@@ -27,7 +29,7 @@ export interface Stream {
   server: string;
   link: string;
   type: string;
-  quality?: "360" | "480" | "720" | "1080" | "2160";
+  quality?: "360" | "480" | "720" | "1080" | "2160" | "auto"; // FIXED: Added "auto"
   subtitles?: TextTracks;
   headers?: any;
 }
@@ -44,6 +46,7 @@ export interface Info {
   rating?: string;
   linkList: Link[];
 }
+
 // getEpisodeLinks
 export interface EpisodeLink {
   title: string;
@@ -57,20 +60,21 @@ export interface Link {
   directLinks?: {
     title: string;
     link: string;
-    type?: "movie" | "series";
+    type?: "movie" | "series" | "episode"; // FIXED: Added "episode"
+    quality?: string; // FIXED: Added optional quality
   }[];
 }
 
 // catalog
-export interface Catalog {
+export interface CatalogEntry { // FIXED: Renamed from Catalog to CatalogEntry
   title: string;
   filter: string;
 }
 
 export interface ProviderType {
   searchFilter?: string;
-  catalog: Catalog[];
-  genres: Catalog[];
+  catalog: CatalogEntry[]; // FIXED: Changed type to CatalogEntry[]
+  genres: CatalogEntry[]; // FIXED: Changed type to CatalogEntry[]
   blurImage?: boolean;
   nonStreamableServer?: string[];
   nonDownloadableServer?: string[];
@@ -131,17 +135,8 @@ export interface ProviderType {
 
 export type ProviderContext = {
   axios: AxiosStatic;
-  Aes: any; // AES encryption utility, if used
+  Aes: any;
   getBaseUrl: (providerValue: string) => Promise<string>;
   commonHeaders: Record<string, string>;
   cheerio: typeof cheerio;
-  extractors: {
-    hubcloudExtracter: (link: string, signal: AbortSignal) => Promise<Stream[]>;
-    gofileExtracter: (id: string) => Promise<{
-      link: string;
-      token: string;
-    }>;
-    superVideoExtractor: (data: any) => Promise<string>;
-    gdFlixExtracter: (link: string, signal: AbortSignal) => Promise<Stream[]>;
-  };
 };

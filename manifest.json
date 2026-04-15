@@ -18,8 +18,8 @@
   {
     "display_name": "DoodleMovies",
     "value": "vega",
-    "version": "5.4",
-    "icon": "https://vegamovies.careers/templates/vegamovies/images/v-l.png",
+    "version": "5.5",
+    "icon": "https://vegamovies.vodka/wp-content/uploads/2026/04/cropped-v-pink-180x180.png",
     "type": "global",
     "category": "movie/tvshow",
     "disabled": false
@@ -54,7 +54,7 @@
   {
     "display_name": "4khdHub",
     "value": "4khdhub",
-    "version": "3.1",
+    "version": "3.2",
     "icon": "https://4khdhub.fans/apple-touch-icon.png",
     "type": "global",
     "category": "movie/tvshow",
@@ -414,7 +414,7 @@
   {
     "display_name": "zeefliz",
     "value": "zeefliz",
-    "version": "3.6",
+    "version": "3.7",
     "icon": "https://zeefliz.life/wp-content/uploads/2025/11/cropped-zeefliz-logo-180x180.jpg",
     "type": "global",
     "category": "movie/tvshow",

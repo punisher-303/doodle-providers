@@ -42,6 +42,25 @@ function detectAudioTags(name: string): string[] {
 }
 
 // Helper to detect quality
+function detectQualityPrint(name: string): boolean {
+  const n = name.toUpperCase();
+  return (
+    n.includes("CAM") || 
+    n.includes("HDCAM") || 
+    n.includes("TS") || 
+    n.includes("TC") || 
+    n.includes("TELESYNC") || 
+    n.includes("CAM-RIP") || 
+    n.includes("CAMRIP") || 
+    n.includes("HDTS") || 
+    n.includes("HD-TS") ||
+    n.includes("SCREENER") ||
+    n.includes(" SCR ") ||
+    n.includes(".SCR.")
+  );
+}
+
+// Helper to detect quality
 function detectQuality(name: string): string {
   const n = name.toUpperCase();
   if (n.includes("2160") || n.includes("4K") || n.includes("UHD")) return "2160";
@@ -88,7 +107,7 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
   if (!imdbId && !title && !showTitle && !keyword) return [];
 
   // Helper to sanitize search strings for torrent trackers
-  const cleanStr = (s: string) => s ? s.replace(/[&]/g, ' ').replace(/\s+/g, ' ').trim() : '';
+  const cleanStr = (s: string) => s ? s.replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim() : '';
   
   const cleanTitle = cleanStr(title);
   const cleanShowTitle = cleanStr(showTitle);
@@ -145,11 +164,12 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
 
   const tasks = [
     runScraper("Knaben", async (q) => {
-        const url = `https://knaben.org/search/${encodeURIComponent(q)}/0/1/seeders`;
+        // Mode 1: Live Search (More accurate for recent prints), 1: Page 1, seeders: Sort
+        const url = `https://knaben.org/search/${encodeURIComponent(q)}/1/1/seeders`;
         logger(`[Provider] Knaben URL: ${url}`);
         const res = await providerContext.axios.get(url, { 
             signal, 
-            timeout: 8000, // Reduced from 10s for speed
+            timeout: 10000, // Increased for Live Search
             headers: { 'User-Agent': commonUA } 
         });
         logger(`[Provider] Knaben Status: ${res.status} | Length: ${res.data.length}`);
@@ -161,15 +181,17 @@ export const getStream = async ({ link, type, signal, providerContext }: { link:
             const magnet = magnetLink.attr("href");
             
             if (magnet) {
-                const n = magnetLink.attr("title") || magnetLink.text().trim();
+                // Prefer the title attribute as it contains the full un-truncated release name
+                const n = magnetLink.attr("title") || magnetLink.parents('td').find('a').first().attr("title") || magnetLink.text().trim();
                 const s = $(el).find("td").eq(2).text().trim(); // Size
                 const sd = $(el).find("td").eq(4).text().trim(); // Seeders
                 const source = $(el).find("td").eq(6).find("a").text().trim() || "Knaben";
                 const qlt = detectQuality(n);
+                const isPrint = detectQualityPrint(n);
                 
                 results.push({
                     name: n,
-                    server: `Knaben | ${qlt || 'HD'} | ${detectAudioTags(n).join(", ")} | ${s} | ${sd}S | ${source}`,
+                    server: `Knaben | ${isPrint ? 'PRINT' : (qlt || 'HD')} | ${detectAudioTags(n).join(", ")} | ${s} | ${sd}S | ${source}`,
                     link: magnet,
                     type: "torrent",
                     quality: qlt as any,

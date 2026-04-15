@@ -41,41 +41,103 @@ export async function hubcloudExtracter(link: string, signal: AbortSignal) {
     for (const element of linkClass) {
       const itm = $(element);
       let link = itm.attr('href') || '';
-      if (link?.includes('.dev') && !link?.includes('/?id=')) {
-        streamLinks.push({server: 'Cf Worker', link: link, type: 'mkv'});
-      }
-      if (link?.includes('pixeld')) {
-        if (!link?.includes('api')) {
-          const token = link.split('/').pop();
-          const baseUrl = link.split('/').slice(0, -2).join('/');
-          link = `${baseUrl}/api/file/${token}?download`;
-        }
-        streamLinks.push({server: 'Pixeldrain', link: link, type: 'mkv'});
-      }
-      if (link?.includes('hubcloud') || link?.includes('/?id=')) {
-        try {
-          const newLinkRes = await axios.head(link, {headers, signal});
-          const newLink =
-            newLinkRes.request?.responseURL?.split('link=')?.[1] || link;
-          streamLinks.push({server: 'hubcloud', link: newLink, type: 'mkv'});
-        } catch (error) {
-          console.log('hubcloudExtracter error in hubcloud link: ', error);
-        }
-      }
-      if (link?.includes('cloudflarestorage')) {
-        streamLinks.push({server: 'CfStorage', link: link, type: 'mkv'});
-      }
-      if (link?.includes('fastdl')) {
-        streamLinks.push({server: 'FastDl', link: link, type: 'mkv'});
-      }
-      if (link.includes('hubcdn')) {
-        streamLinks.push({
-          server: 'HubCdn',
-          link: link,
-          type: 'mkv',
-        });
+
+      switch (true) {
+        case link?.includes('.dev') && !link?.includes('/?id='):
+          streamLinks.push({server: 'Cf Worker', link: link, type: 'mkv'});
+          break;
+
+        case link?.includes('pixeld'):
+          if (!link?.includes('api')) {
+            const token = link.split('/').pop();
+            const baseUrl = link.split('/').slice(0, -2).join('/');
+            link = `${baseUrl}/api/file/${token}?download`;
+          }
+          streamLinks.push({server: 'Pixeldrain', link: link, type: 'mkv'});
+          break;
+
+        case link?.includes('hubcloud') || link?.includes('/?id='):
+          try {
+            const newLinkRes = await fetch(link, {
+              method: 'HEAD',
+              headers,
+              signal,
+              redirect: 'manual',
+            });
+
+            // Check if response is a redirect (301, 302, etc.)
+            let newLink = link;
+            if (newLinkRes.status >= 300 && newLinkRes.status < 400) {
+              newLink = newLinkRes.headers.get('location') || link;
+            } else if (newLinkRes.url && newLinkRes.url !== link) {
+              // Fallback: check if URL changed (redirect was followed)
+              newLink = newLinkRes.url;
+            } else {
+              newLink = newLinkRes.headers.get('location') || link;
+            }
+            if (newLink.includes('googleusercontent')) {
+              newLink = newLink.split('?link=')[1];
+            } else {
+              const newLinkRes2 = await fetch(newLink, {
+                method: 'HEAD',
+                headers,
+                signal,
+                redirect: 'manual',
+              });
+
+              // Check if response is a redirect
+              if (newLinkRes2.status >= 300 && newLinkRes2.status < 400) {
+                newLink =
+                  newLinkRes2.headers.get('location')?.split('?link=')[1] ||
+                  newLink;
+              } else if (newLinkRes2.url && newLinkRes2.url !== newLink) {
+                // Fallback: URL changed due to redirect
+                newLink = newLinkRes2.url.split('?link=')[1] || newLinkRes2.url;
+              } else {
+                newLink =
+                  newLinkRes2.headers.get('location')?.split('?link=')[1] ||
+                  newLink;
+              }
+            }
+
+            streamLinks.push({
+              server: 'hubcloud',
+              link: newLink,
+              type: 'mkv',
+            });
+          } catch (error) {
+            console.log('hubcloudExtracter error in hubcloud link: ', error);
+          }
+          break;
+
+        case link?.includes('cloudflarestorage'):
+          streamLinks.push({server: 'CfStorage', link: link, type: 'mkv'});
+          break;
+
+        case link?.includes('fastdl') || link?.includes('fsl.'):
+          streamLinks.push({server: 'FastDl', link: link, type: 'mkv'});
+          break;
+
+        case link.includes('hubcdn') && !link.includes('/?id='):
+          streamLinks.push({
+            server: 'HubCdn',
+            link: link,
+            type: 'mkv',
+          });
+          break;
+
+        default:
+          if (link?.includes('.mkv')) {
+            const serverName =
+              link
+                .match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i)?.[1]
+                ?.replace(/\./g, ' ') || 'Unknown';
+            streamLinks.push({server: serverName, link: link, type: 'mkv'});
+          }
+          break;
       }
     }
+
     console.log('streamLinks', streamLinks);
     return streamLinks;
   } catch (error) {

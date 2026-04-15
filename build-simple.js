@@ -1,297 +1,226 @@
+const esbuild = require("esbuild");
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 const { minify } = require("terser");
 
-// Build configuration
-const PROVIDERS_DIR = "./providers";
-const DIST_DIR = "./dist";
+const SKIP_MINIFY = process.env.SKIP_MINIFY === "true";
 
-// Colors for console output
-const colors = {
-  reset: "\x1b[0m",
-  bright: "\x1b[1m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  magenta: "\x1b[35m",
-  cyan: "\x1b[36m",
-};
+// Find all provider directories
+const providersDir = path.join(__dirname, "providers");
+const providerDirs = fs
+  .readdirSync(providersDir, { withFileTypes: true })
+  .filter(
+    (dirent) =>
+      dirent.isDirectory() &&
+      !dirent.name.startsWith(".") &&
+      dirent.name !== "extractors",
+  )
+  .map((dirent) => dirent.name);
 
-const log = {
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  success: (msg) => console.log(`${colors.green}✅${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}❌${colors.reset} ${msg}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠️${colors.reset} ${msg}`),
-  build: (msg) => console.log(`${colors.magenta}🔨${colors.reset} ${msg}`),
-  file: (msg) => console.log(`${colors.cyan}📄${colors.reset} ${msg}`),
-};
+console.log(`Found ${providerDirs.length} providers to build`);
 
-/**
- * Simple and efficient provider builder
- */
-class ProviderBuilder {
-  constructor() {
-    this.startTime = Date.now();
-    this.providers = [];
-    this.manifest = [];
+async function buildProvider(providerName) {
+  const providerPath = path.join(providersDir, providerName);
+  const distPath = path.join(__dirname, "dist", providerName);
+
+  // Create dist directory
+  if (!fs.existsSync(distPath)) {
+    fs.mkdirSync(distPath, { recursive: true });
   }
 
-  /**
-   * Clean the dist directory
-   */
-  cleanDist() {
-    const onlyProvider = process.env.ONLY_PROVIDER;
-    if (onlyProvider) {
-      const providerDistDir = path.join(DIST_DIR, onlyProvider);
-      if (fs.existsSync(providerDistDir)) {
-        fs.rmSync(providerDistDir, { recursive: true, force: true });
-      }
-      log.info(`Cleaned dist directory for ${onlyProvider} only`);
-    } else {
-      if (fs.existsSync(DIST_DIR)) {
-        fs.rmSync(DIST_DIR, { recursive: true, force: true });
-      }
-      // log.success("Cleaned dist directory");
+  const modules = ["catalog", "posts", "meta", "stream", "episodes"];
+  const results = [];
+
+  for (const moduleName of modules) {
+    const modulePath = path.join(providerPath, `${moduleName}.ts`);
+
+    if (!fs.existsSync(modulePath)) {
+      continue;
     }
-    fs.mkdirSync(DIST_DIR, { recursive: true });
-  }
-
-  /**
-   * Discover all provider directories
-   */
-  discoverProviders() {
-    const onlyProvider = process.env.ONLY_PROVIDER;
-    const items = fs.readdirSync(PROVIDERS_DIR, { withFileTypes: true });
-
-    this.providers = items
-      .filter((item) => item.isDirectory())
-      .filter((item) => !item.name.startsWith("."))
-      .map((item) => item.name);
-
-    if (onlyProvider) {
-      this.providers = this.providers.filter(p => p === onlyProvider);
-    }
-
-    log.info(
-      `Found ${this.providers.length} providers: ${this.providers.join(", ")}`
-    );
-  }
-
-  /**
-   * Compile all TypeScript files using tsconfig.json
-   */
-  compileAllProviders() {
-    log.build("Compiling TypeScript files...");
 
     try {
-      // Use TypeScript to compile all files according to tsconfig.json
-      execSync("npx tsc", {
-        stdio: "pipe",
-        encoding: "utf8",
+      // Use esbuild to bundle the module
+      const result = await esbuild.build({
+        entryPoints: [modulePath],
+        bundle: true,
+        platform: "node",
+        format: "cjs",
+        target: "es2015",
+        write: false,
+        external: [],
+        minify: false,
+        keepNames: true,
+        treeShaking: true,
+        outfile: `${moduleName}.js`,
       });
 
-      // log.success("TypeScript compilation completed");
-      return true;
-    } catch (error) {
-      log.error("TypeScript compilation failed:");
-      if (error.stdout) {
-        console.log(error.stdout);
-      }
-      if (error.stderr) {
-        console.log(error.stderr);
-      }
-      return false;
-    }
-  }
+      let code = result.outputFiles[0].text;
 
-  /**
-   * Minify all JavaScript files in the dist directory
-   */
-  async minifyFiles() {
-    const keepConsole = process.env.KEEP_CONSOLE === "true";
-    log.build(
-      `Minifying JavaScript files... ${keepConsole ? "(keeping console logs)" : "(removing console logs)"
-      }`
-    );
+      // Post-process the code for React Native compatibility
+      // Remove require statements for built-in modules that aren't available
+      code = code.replace(/require\(['"]node:.*?['"]\)/g, "{}");
 
-    const minifyFile = async (filePath) => {
-      try {
-        const code = fs.readFileSync(filePath, "utf8");
-        const result = await minify(code, {
+      const exportMatch = code.match(/__export\((\w+),\s*\{([^}]+)\}\);/);
+
+      if (exportMatch) {
+        const exportsVar = exportMatch[1];
+        const exportsContent = exportMatch[2];
+
+        // Parse the export entries like "funcName: () => funcName"
+        const exportEntries = exportsContent
+          .split(",")
+          .map((entry) => {
+            const match = entry.trim().match(/(\w+):\s*\(\)\s*=>\s*(\w+)/);
+            return match ? match[1] : null;
+          })
+          .filter(Boolean);
+
+        // Replace module.exports pattern
+        code = code.replace(
+          /module\.exports\s*=\s*__toCommonJS\((\w+)\);/g,
+          "",
+        );
+
+        // Add direct exports assignments at the end
+        const directExports = exportEntries
+          .map((name) => `exports.${name} = ${name};`)
+          .join("\n");
+
+        // Add the exports before the final comment
+        code = code.replace(
+          /\/\/ Annotate the CommonJS export names for ESM import in node:/,
+          `${directExports}\n// Annotate the CommonJS export names for ESM import in node:`,
+        );
+      }
+
+      // Also handle the "0 && (module.exports = {...})" pattern at the end
+      code = code.replace(
+        /0\s*&&\s*\(module\.exports\s*=\s*\{[^}]*\}\);?/g,
+        "",
+      );
+
+      // Minify if not skipped
+      if (!SKIP_MINIFY) {
+        const minified = await minify(code, {
           compress: {
-            drop_console: !keepConsole, // Remove console logs unless KEEP_CONSOLE=true
-            drop_debugger: true,
-            pure_funcs: keepConsole
-              ? ["console.debug"]
-              : [
-                "console.debug",
-                "console.log",
-                "console.info",
-                "console.warn",
-              ],
+            drop_console: false,
+            passes: 2,
+            unsafe: false,
+            unsafe_arrows: false,
+            unsafe_comps: false,
+            unsafe_Function: false,
+            unsafe_math: false,
+            unsafe_symbols: false,
+            unsafe_methods: false,
+            unsafe_proto: false,
+            unsafe_regexp: false,
+            unsafe_undefined: false,
           },
-          mangle: false, // Disable variable name mangling to keep original names
+          mangle: false, // Disable mangling completely for React Native compatibility
           format: {
-            comments: false, // Remove comments
+            comments: false,
           },
         });
 
-        if (result.code) {
-          fs.writeFileSync(filePath, result.code);
-          return true;
-        } else {
-          log.warning(`Failed to minify ${filePath}: No output code`);
-          return false;
-        }
-      } catch (error) {
-        log.error(`Error minifying ${filePath}: ${error.message}`);
-        return false;
-      }
-    };
-
-    const findJsFiles = (dir) => {
-      const files = [];
-      const items = fs.readdirSync(dir, { withFileTypes: true });
-
-      for (const item of items) {
-        const fullPath = path.join(dir, item.name);
-        if (item.isDirectory()) {
-          files.push(...findJsFiles(fullPath));
-        } else if (item.isFile() && item.name.endsWith(".js")) {
-          files.push(fullPath);
+        if (minified.code) {
+          code = minified.code;
         }
       }
 
-      return files;
-    };
+      // Write the output
+      const outputPath = path.join(distPath, `${moduleName}.js`);
+      fs.writeFileSync(outputPath, code);
 
-    const jsFiles = findJsFiles(DIST_DIR);
-    let minifiedCount = 0;
-    let totalSizeBefore = 0;
-    let totalSizeAfter = 0;
+      results.push({
+        moduleName,
+        size: code.length,
+      });
 
-    for (const filePath of jsFiles) {
-      const statsBefore = fs.statSync(filePath);
-      totalSizeBefore += statsBefore.size;
-
-      const success = await minifyFile(filePath);
-      if (success) {
-        const statsAfter = fs.statSync(filePath);
-        totalSizeAfter += statsAfter.size;
-        minifiedCount++;
-      }
-    }
-
-    const compressionRatio =
-      totalSizeBefore > 0
-        ? (
-          ((totalSizeBefore - totalSizeAfter) / totalSizeBefore) *
-          100
-        ).toFixed(1)
-        : 0;
-
-    log.success(
-      `Minified ${minifiedCount}/${jsFiles.length} files. ` +
-      `Size reduced by ${compressionRatio}% (${totalSizeBefore} → ${totalSizeAfter} bytes)`
-    );
-  }
-
-  /**
-   * Organize compiled files by provider
-   */
-  organizeFiles() {
-    log.build("Organizing compiled files...");
-
-    for (const provider of this.providers) {
-      const providerSrcDir = path.join(PROVIDERS_DIR, provider);
-      const providerDistDir = path.join(DIST_DIR, provider);
-
-      // Create provider dist directory
-      if (!fs.existsSync(providerDistDir)) {
-        fs.mkdirSync(providerDistDir, { recursive: true });
-      }
-
-      // Copy compiled JS files
-      const files = [
-        "catalog.js",
-        "posts.js",
-        "meta.js",
-        "stream.js",
-        "episodes.js",
-      ];
-      let fileCount = 0;
-
-      for (const file of files) {
-        const srcFile = path.join(DIST_DIR, provider, file);
-        const destFile = path.join(providerDistDir, file);
-
-        if (fs.existsSync(srcFile)) {
-          // File already in the right place
-          fileCount++;
-        }
-      }
-
-      if (fileCount > 0) {
-        // log.success(`  ${provider}: ${fileCount} modules ready`);
-      } else {
-        log.warning(`  ${provider}: No modules found`);
-      }
+      console.log(
+        `✓ ${providerName}/${moduleName}.js (${(code.length / 1024).toFixed(1)}kb)`,
+      );
+    } catch (error) {
+      console.error(
+        `✗ Error building ${providerName}/${moduleName}:`,
+        error.message,
+      );
     }
   }
 
-  /**
-   * Build everything
-   */
-  async build() {
-    const isWatchMode = process.env.NODE_ENV === "development";
+  return { providerName, modules: results };
+}
 
-    if (isWatchMode) {
-      console.log(
-        `\n${colors.cyan}🔄 Auto-build triggered${colors.reset
-        } ${new Date().toLocaleTimeString()}`
-      );
-    } else {
-      console.log(
-        `\n${colors.bright}🚀 Starting provider build...${colors.reset}\n`
-      );
+async function buildUtilityFiles() {
+  const utilityFiles = ["getBaseUrl", "headers", "providerContext"];
+
+  for (const utilityName of utilityFiles) {
+    const utilityPath = path.join(providersDir, `${utilityName}.ts`);
+
+    if (!fs.existsSync(utilityPath)) {
+      continue;
     }
 
-    this.cleanDist();
-    this.discoverProviders();
+    try {
+      const result = await esbuild.build({
+        entryPoints: [utilityPath],
+        bundle: true,
+        platform: "node",
+        format: "cjs",
+        target: "es2015",
+        write: false,
+        external: [],
+        minify: false,
+        keepNames: true,
+        treeShaking: true,
+        outfile: `${utilityName}.js`,
+      });
 
-    const compiled = this.compileAllProviders();
-    if (!compiled) {
-      log.error("Build failed due to compilation errors");
-      process.exit(1);
-    }
+      let code = result.outputFiles[0].text;
+      code = code.replace(/require\(['"]node:.*?['"]\)/g, "{}");
 
-    this.organizeFiles();
+      const outputPath = path.join(__dirname, "dist", `${utilityName}.js`);
+      fs.writeFileSync(outputPath, code);
 
-    // Add minification step (skip if SKIP_MINIFY is set)
-    if (!process.env.SKIP_MINIFY) {
-      await this.minifyFiles();
-    } else {
-      log.info("Skipping minification (SKIP_MINIFY=true)");
-    }
-
-    const buildTime = Date.now() - this.startTime;
-    log.success(`Build completed in ${buildTime}ms`);
-
-    if (isWatchMode) {
-      console.log(`${colors.green}👀 Watching for changes...${colors.reset}\n`);
-    } else {
-      console.log(
-        `${colors.bright}✨ Build completed successfully!${colors.reset}\n`
-      );
+      console.log(`✓ ${utilityName}.js (${(code.length / 1024).toFixed(1)}kb)`);
+    } catch (error) {
+      console.error(`✗ Error building ${utilityName}:`, error.message);
     }
   }
 }
 
-// Run the build
-const builder = new ProviderBuilder();
-builder.build().catch((error) => {
+async function buildAll() {
+  const startTime = Date.now();
+  console.log(
+    `Building providers${SKIP_MINIFY ? " (without minification)" : ""}...\n`,
+  );
+
+  // Clear dist directory
+  const distDir = path.join(__dirname, "dist");
+  if (fs.existsSync(distDir)) {
+    fs.rmSync(distDir, { recursive: true, force: true });
+  }
+  fs.mkdirSync(distDir, { recursive: true });
+
+  // Build utility files first
+  await buildUtilityFiles();
+
+  // Build all providers
+  const results = await Promise.all(providerDirs.map(buildProvider));
+
+  const totalModules = results.reduce((sum, r) => sum + r.modules.length, 0);
+  const totalSize = results.reduce(
+    (sum, r) => sum + r.modules.reduce((s, m) => s + m.size, 0),
+    0,
+  );
+
+  const endTime = Date.now();
+  console.log(
+    `\n✓ Built ${totalModules} modules from ${providerDirs.length} providers in ${((endTime - startTime) / 1000).toFixed(2)}s`,
+  );
+  console.log(`  Total size: ${(totalSize / 1024).toFixed(1)}kb`);
+}
+
+buildAll().catch((error) => {
   console.error("Build failed:", error);
   process.exit(1);
 });

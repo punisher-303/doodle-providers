@@ -1,4 +1,6 @@
 import { ProviderContext, Stream } from "../types";
+import { hubcloudExtractor } from "../extractors/hubcloud";
+
 
 const headers = {
   Accept:
@@ -31,65 +33,80 @@ export async function getStream({
   type: string;
   signal: AbortSignal;
   providerContext: ProviderContext;
-}) {
-  const { axios, cheerio, extractors } = providerContext;
-  const { hubcloudExtracter } = extractors;
+}): Promise<Stream[]> {
+  const { axios, cheerio, } = providerContext;
 
   try {
     const streamLinks: Stream[] = [];
-    console.log("Fetching link:", link);
 
-    if (type === "movie") {
-      // --- 1️⃣ Load the main page ---
-      const pageRes = await axios.get(link, { headers });
-      const html = pageRes.data;
-      const $ = cheerio.load(html);
+    // 1) Load page to extract CSRF token
+    const pageRes = await axios.get(link, { headers, signal });
+    const html = pageRes.data;
+    const $ = cheerio.load(html);
 
-      // --- 2️⃣ Find HubCloud link ---
-      let hubcloudLink = "";
+    // ---- DYNAMIC CSRF TOKEN DETECTION ----
+    const csrfInput = $("input[name^='_csrf']");
+    const csrfName = csrfInput.attr("name");
+    const csrfValue = csrfInput.val();
 
-      // Case 1: direct <a href="https://hubcloud.fit/video/...">
-      const directMatch = html.match(/href="(https?:\/\/hubcloud\.fit\/video\/[^"]+)"/i);
-      if (directMatch && directMatch[1]) {
-        hubcloudLink = directMatch[1];
-      }
+    if (!csrfName || !csrfValue) {
+      console.warn("Dynamic CSRF token not found");
+      return [];
+    }
 
-      // Case 2: or any link in <a> that contains "hubcloud.fit"
-      if (!hubcloudLink) {
-        $("a[href*='hubcloud.fit']").each((_, el) => {
-          const href = $(el).attr("href");
-          if (href && href.includes("hubcloud.fit")) {
-            hubcloudLink = href;
-            return false; // break
-          }
-        });
-      }
+    // 2) POST request with dynamic CSRF field
+    const formData = new URLSearchParams();
+    formData.append(csrfName, csrfValue as string);
 
-      if (!hubcloudLink) {
-        console.warn("No HubCloud link found on page:", link);
-        return [];
-      }
+    const unlockRes = await axios.post(link, formData, {
+      headers: {
+        ...headers,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      signal,
+    });
 
-      console.log("Found HubCloud link:", hubcloudLink);
+    const unlockedHTML = unlockRes.data;
+    const $$ = cheerio.load(unlockedHTML);
 
-      // --- 3️⃣ Send the HubCloud link to hubcloudExtracter ---
-      const hubcloudStreams = await hubcloudExtracter(hubcloudLink, signal);
+    // 3) Extract HubCloud link after unlock
+    let hubcloudLink = "";
+    const match = unlockedHTML.match(
+      /https?:\/\/hubcloud\.(fit|foo)\/video\/[a-zA-Z0-9_]+/i
+    );
+    if (match) hubcloudLink = match[0];
 
-      if (hubcloudStreams && Array.isArray(hubcloudStreams)) {
-        streamLinks.push(...hubcloudStreams);
-      } else if (hubcloudStreams) {
-        streamLinks.push({
-          server: "hubcloud",
-          link: hubcloudStreams,
-          type: "mp4",
-        });
-      }
+    if (!hubcloudLink) {
+      $$("a[href*='hubcloud']").each((_, el) => {
+        const href = $$(el).attr("href");
+        if (href) {
+          hubcloudLink = href;
+          return false; // break
+        }
+      });
+    }
+
+    if (!hubcloudLink) {
+      console.warn("HubCloud link not found after unlock");
+      return [];
+    }
+
+    // 4) Extract stream from HubCloud extractor
+    const hubcloudStreams = await hubcloudExtractor(hubcloudLink, signal, axios, cheerio, headers);
+
+    if (Array.isArray(hubcloudStreams)) {
+      streamLinks.push(...hubcloudStreams);
+    } else if (hubcloudStreams) {
+      streamLinks.push({
+        server: "hubcloud",
+        link: hubcloudStreams,
+        type: "mp4",
+      });
     }
 
     return streamLinks;
-  } catch (error: any) {
-    console.error("getStream error:", error.message || error);
-    if (error.message?.includes("Aborted")) return [];
+  } catch (err: any) {
+    console.error("getStream error:", err.message);
     return [];
   }
 }
