@@ -1,5 +1,14 @@
 [
   {
+    "display_name": "DoodleMovies",
+    "value": "vega",
+    "version": "5.5",
+    "icon": "https://vegamovies.vodka/wp-content/uploads/2026/04/cropped-v-pink-180x180.png",
+    "type": "global",
+    "category": "movie/tvshow",
+    "disabled": false
+  },
+  {
     "display_name": "Torrent",
     "value": "torrent",
     "version": "11.7",
@@ -14,15 +23,6 @@
       "http://torrserver.nnoffkj.ru",
       "http://vavilon.online:8090"
     ]
-  },
-  {
-    "display_name": "DoodleMovies",
-    "value": "vega",
-    "version": "5.5",
-    "icon": "https://vegamovies.vodka/wp-content/uploads/2026/04/cropped-v-pink-180x180.png",
-    "type": "global",
-    "category": "movie/tvshow",
-    "disabled": false
   },
   {
     "display_name": "MultiStream",
